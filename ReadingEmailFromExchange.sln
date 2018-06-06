@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2018
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadingEmailFromExchange", "ReadingEmailFromExchange\ReadingEmailFromExchange.csproj", "{EFC9162F-7E33-4A73-8EB9-3CEE74B97966}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EFC9162F-7E33-4A73-8EB9-3CEE74B97966}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFC9162F-7E33-4A73-8EB9-3CEE74B97966}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFC9162F-7E33-4A73-8EB9-3CEE74B97966}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFC9162F-7E33-4A73-8EB9-3CEE74B97966}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CA2A5558-B635-4DA8-B6C7-835B6EA5C6F1}
+	EndGlobalSection
+EndGlobal
