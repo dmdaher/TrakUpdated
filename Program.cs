@@ -183,11 +183,22 @@ namespace WindowsFormsApp1
                 // Bind the Inbox folder to the service object.
                 Microsoft.Exchange.WebServices.Data.Folder inbox = Microsoft.Exchange.WebServices.Data.Folder.Bind(service, WellKnownFolderName.Inbox);
                 // The search filter to get unread email.
+                Console.WriteLine("BEFORE");
                 SearchFilter sf = new SearchFilter.SearchFilterCollection(LogicalOperator.And, new SearchFilter.IsEqualTo(EmailMessageSchema.IsRead, false));
+
+                //new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender, "@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase)
+                Console.WriteLine("the email message schema sender is: " + EmailMessageSchema.Sender);
+                //SearchFilter.ContainsSubstring subjectFilter = new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender,"@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase);
+
+                Console.WriteLine("AFTER");
+
                 ItemView view = new ItemView(1);
                 // Fire the query for the unread items.
                 // This method call results in a FindItem call to EWS.
+                view.PropertySet = new PropertySet(BasePropertySet.IdOnly, EmailMessageSchema.Sender);
+                
                 FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, sf, view);
+                //service.LoadPropertiesForItems(findResults, view.PropertySet);
                 string body = "";
                 string subject = "";
                 Program prog = new Program();
@@ -242,14 +253,15 @@ namespace WindowsFormsApp1
         public void parseEmail(Program prog)
         {
             //Program prog = new Program();
-            string aLine, aParagraph = null;
+            string aLine = null;
             StringReader strReader = new StringReader(this.getMBody());
             int actualCount = 0;
             int milestoneCount = 0;
             Console.WriteLine("the private variable is: " + this.mProjectTitle);
-            while (true)
+            aLine = strReader.ReadLine();
+            while (aLine != null)
             {
-                aLine = strReader.ReadLine();
+                
                 //aLine.ToLower();
                 //aLine = aLine.Replace(" ", String.Empty);
                 aLine.Trim();
@@ -318,9 +330,12 @@ namespace WindowsFormsApp1
                         Console.WriteLine("Found the status reason as...  " + prog.getMStatusReason());
                     }
                 }
+                aLine = strReader.ReadLine();
             }
-            
-            Console.WriteLine("Modified text:\n\n{0}", aParagraph);
+            Sharepoint sp = new Sharepoint(prog);
+            sp.addList();
+            sp.addColumns();
+            sp.addEstimatedTimesColumn();
         }
 
         public void helperActualParser(Program prog)
