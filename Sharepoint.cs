@@ -49,8 +49,13 @@ namespace WindowsFormsApp1
 
             // The SharePoint web at the URL.
             Web web = mClientContext.Web;
-            if(mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle()) == null)
+            //SP.List projList = web.Lists.GetByTitle(mProg.getMProjectTitle());
+            try
             {
+                //incorrect way of checking if proj list is null or not
+                //if (projList == null)
+                //{
+                Console.WriteLine("So it is not null??");
                 ListCreationInformation creationInfo = new ListCreationInformation();
                 creationInfo.Title = mProg.getMProjectTitle();
                 creationInfo.TemplateType = (int)ListTemplateType.GenericList;
@@ -59,6 +64,15 @@ namespace WindowsFormsApp1
                 list.Update();
                 mClientContext.ExecuteQuery();
                 addColumns(); //add static columns for each list created
+                //}
+                //else
+                //{
+                //    addAllData(); //list found so just input the data
+               // }
+            }
+            catch(PropertyOrFieldNotInitializedException pfnie)       
+            {
+                Console.WriteLine(pfnie);
             }
         }
 
@@ -66,8 +80,8 @@ namespace WindowsFormsApp1
         {
             Web web = mClientContext.Web;
             SP.List projList = mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle());
-            if (projList != null)
-            {
+            //if (projList != null)
+            //{
                 // Adding the Custom field to the List. Here the OOB SPFieldText has been selected as the “FieldType”
                 SP.FieldCollection collFields = projList.Fields;
                 projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated Start Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
@@ -84,20 +98,41 @@ namespace WindowsFormsApp1
                 projList.Fields.AddFieldAsXml("<Field DisplayName='Resources' Type='Choice' />", true, AddFieldOptions.DefaultValue);
                 projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status' Type='Choice' />", true, AddFieldOptions.DefaultValue);
                 projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status Reason' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+
+                //test field
+                projList.Fields.AddFieldAsXml("<Field DisplayName='test' Type='Choice' />", true, AddFieldOptions.DefaultValue);
                 //SP.Field oField = collFields.GetByTitle("MyNewField");
                 Console.WriteLine("Executing end of adding columns");
                 mClientContext.ExecuteQuery();
-            }
+            //}
         }
 
-        public void addEstimatedTimesColumn()
+        public void addAllData()
         {
             Web web = mClientContext.Web;
-            SP.List oList = mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle());
+            SP.List projList = mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle());
+            
             ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
-            ListItem oListItem = oList.AddItem(itemCreateInfo);
-            //oListItem["Title"] = mProg.getMEstStartDate();
-            oListItem["Title"] = "ALRIGHTY";
+            ListItem oListItem = projList.AddItem(itemCreateInfo);
+            Console.WriteLine("The estimated start time is: " + mProg.getMEstStartTime());
+            //oListItem.DisplayName() = mProg.getMEstStartTime();
+            oListItem["test"] = "so it worked";
+            //oListItem["Estimated Start Time"] = mProg.getMEstStartTime();
+            //oListItem["Estimated Start Date"] = mProg.getMEstStartDate();
+            //oListItem["Estimated End Time"] = mProg.getMEstEndTime();
+            //oListItem["Estimated End Date"] = mProg.getMEstEndDate();
+            //oListItem["Actual Start Time"] = mProg.getMActualStartTime();
+            //oListItem["Actual Start Date"] = mProg.getMActualStartDate();
+            
+            for(int i = 0; i<mProg.getMMilestoneSize(); i++)
+            {
+                //oListItem["Milestone Number"] = mProg.getMMilestoneNum(i);
+            }
+            //oListItem["Milestone Number"] = mProg.getMMilestoneNum();
+            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
+            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
+            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
+            
             //oListItem["Body"] = mProg.getMEstStartTime();
             Console.WriteLine("MUST UPDATE");
             oListItem.Update();

@@ -29,7 +29,9 @@ namespace WindowsFormsApp1
         private string mDateAndTimeSent;
         private string mActualStartDate;
         private string mActualStartTime;
+        //milestone arrays, pos, and size
         private string[] mMilestoneNum;
+        private int mMilestoneSize;
         private int mMilestoneCurrentPosition;
         private string[] mMilestoneCommand;
         private string[] mMilestoneComment;
@@ -44,9 +46,10 @@ namespace WindowsFormsApp1
 
         Program()
         {
-            this.mMilestoneNum = new string[5];
-            this.mMilestoneCommand = new string[5];
-            this.mMilestoneComment = new string[5];
+            this.mMilestoneNum = new string[20];
+            this.mMilestoneCommand = new string[20];
+            this.mMilestoneComment = new string[20];
+            mMilestoneSize = 0;
         }
         //subject and body of email
         public string getMProjectTitle() { return mProjectTitle; }
@@ -59,7 +62,8 @@ namespace WindowsFormsApp1
         public string getMDateAndTimeSent() { return mDateAndTimeSent; }
         public void setMDateAndTimeSent(string value) { mDateAndTimeSent = value; }
 
-
+        //milestone size
+        public int getMMilestoneSize() { return mMilestoneSize; }
         //milestone number, command, and comment
         public string getMMilestoneNum(int pos) { return mMilestoneNum[pos]; }
         //keep milestone number around under 4-5
@@ -71,6 +75,7 @@ namespace WindowsFormsApp1
             if(position < mMilestoneNum.Length - 1)
             {
                 mMilestoneNum[position] = value;
+                mMilestoneSize++;
             }
             else
             {
@@ -269,10 +274,10 @@ namespace WindowsFormsApp1
                 {
                     //aParagraph = aParagraph + aLine + " ";                
                     //Console.WriteLine("the line is: " + aLine);
-                    
+                    string parsedValue = valueParser(aLine);
                     if (aLine.Contains("Milestone"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         //setting milestone converts the string milestone to a milestone number
                         prog.setMMilestoneNum(parsedValue);
                         int pos = Convert.ToInt32(parsedValue);
@@ -283,20 +288,20 @@ namespace WindowsFormsApp1
                     //gets milestone command
                     else if (aLine.Contains("Command"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMMilestoneCommand(parsedValue);
                         Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentPosition));
                     }
                     else if(aLine.Contains("Comment"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMMilestoneComment(parsedValue);
                         Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentPosition));
                     }
                     //calls helper function to retrieve estimated date and times
                     else if (aLine.Contains("Estimated"))
                     {
-                        helperEstimatedParser(aLine);
+                        helperEstimatedParser(aLine, prog);
                     }
                     //gets actual date and time
                     else if(actualCount == 0)
@@ -307,25 +312,25 @@ namespace WindowsFormsApp1
                     //gets milestone comment
                     else if(aLine.Contains("Resources"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMResources(parsedValue);
                         Console.WriteLine("Found the resources needed to be... " + prog.getMResources());
                     }
                     else if (aLine.Contains("Time Spent"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMTimeSpent(parsedValue);
                         Console.WriteLine("Found the time spent as...  " + prog.getMTimeSpent());
                     }
                     else if (aLine.Contains("Current Status"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMCurrentStatus(parsedValue);
                         Console.WriteLine("Found the current status as...  " + prog.getMCurrentStatus());
                     }
                     else if (aLine.Contains("Status Reason"))
                     {
-                        string parsedValue = valueParser(aLine);
+                        
                         prog.setMStatusReason(parsedValue);
                         Console.WriteLine("Found the status reason as...  " + prog.getMStatusReason());
                     }
@@ -334,8 +339,8 @@ namespace WindowsFormsApp1
             }
             Sharepoint sp = new Sharepoint(prog);
             sp.addList();
-            sp.addColumns();
-            sp.addEstimatedTimesColumn();
+            //sp.addColumns();
+            sp.addAllData();
         }
 
         public void helperActualParser(Program prog)
@@ -351,27 +356,34 @@ namespace WindowsFormsApp1
             Console.WriteLine("the actual start date is: " + prog.getMActualStartDate());
             Console.WriteLine("the actual start time is: " + prog.getMActualStartTime());
         }
-        public void helperEstimatedParser(string str)
+        public void helperEstimatedParser(string str, Program prog)
         {
-            Program prog = new Program();
-            switch (str)
+            if (str.Contains("&nbsp;"))
             {
-                case "Estimated Start Time":
-                    prog.setMEstStartTime(valueParser(str));
-                    Console.WriteLine("est start time has been set to:  " + prog.getMEstStartTime());
-                    break;
-                case "Estimated End Time":
-                    prog.setMEstEndTime(valueParser(str));
-                    Console.WriteLine("est end time has been set to:  " + prog.getMEstEndTime());
-                    break;
-                case "Estimated Start Date":
-                    prog.setMEstStartDate(valueParser(str));
-                    Console.WriteLine("est start date has been set to:  " + prog.getMEstStartDate());
-                    break;
-                case "Estimated End Date":
-                    prog.setMEstEndDate(valueParser(str));
-                    Console.WriteLine("est start date has been set to:  " + prog.getMEstEndDate());
-                    break;
+                str = str.Replace("&nbsp;", " ");
+            }
+            string parsedValue = estValueParser(str);
+            //check original string to see what title it contains
+            //then input the parsed value into the correct category
+            if(str.Contains("Estimated Start Time"))
+            {
+                prog.setMEstStartTime(parsedValue);
+                Console.WriteLine("est start time has been set to:  " + prog.getMEstStartTime());
+            }
+            else if(str.Contains("Estimated End Time"))
+            {
+                prog.setMEstEndTime(parsedValue);
+                Console.WriteLine("est end time has been set to:  " + prog.getMEstEndTime());
+            }
+            else if (str.Contains("Estimated Start Date"))
+            {
+                prog.setMEstStartDate(parsedValue);
+                Console.WriteLine("est start date has been set to:  " + prog.getMEstStartDate());
+            }
+            else if (str.Contains("Estimated End Date"))
+            {
+                prog.setMEstEndDate(parsedValue);
+                Console.WriteLine("est start date has been set to:  " + prog.getMEstEndDate());
             }
         }
 
@@ -379,6 +391,7 @@ namespace WindowsFormsApp1
         //starts from end of the string
         public string valueParser(string str)
         {
+            //str.Replace("&nbsp;", " ");
             str.Trim();
             string newStr = "";
             for (int i = str.Length - 1; i >= 0; i--)
@@ -386,6 +399,35 @@ namespace WindowsFormsApp1
                 if (str[i] == ':' || str[i] == ';' || str[i] == '#')
                 {
                     break;
+                }
+                else
+                {
+                    newStr = str[i] + newStr;
+                }
+            }
+            newStr.Trim();
+            return newStr;
+        }
+
+        public string estValueParser(string str)
+        {
+            //str.Replace("&nbsp;", " ");
+            str.Trim();
+            string newStr = "";
+            int colonCount = 0;
+            for (int i = str.Length - 1; i >= 0; i--)
+            {
+                if (str[i] == ':')
+                {
+                    colonCount++;
+                    if(colonCount >= 2) 
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        newStr = str[i] + newStr;
+                    }
                 }
                 else
                 {
