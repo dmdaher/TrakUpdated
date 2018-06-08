@@ -32,7 +32,7 @@ namespace WindowsFormsApp1
         //milestone arrays, pos, and size
         private string[] mMilestoneNum;
         private int mMilestoneSize;
-        private int mMilestoneCurrentPosition;
+        private int mMilestoneCurrentArrPosition;
         private string[] mMilestoneCommand;
         private string[] mMilestoneComment;
         private string mEstEndDate;
@@ -69,20 +69,19 @@ namespace WindowsFormsApp1
         //keep milestone number around under 4-5
         public void setMMilestoneNum(string value)
         {
-            Console.WriteLine("we in here$$$$$$$$$$$$$$$@@@@@@@@@@@@@@");
             int position;
             position = Convert.ToInt32(value);
-            if(position < mMilestoneNum.Length - 1)
+            int arrPosition = position - 1;
+            if(arrPosition < mMilestoneNum.Length - 1 && arrPosition >= 0)
             {
-                mMilestoneNum[position] = value;
+                mMilestoneNum[arrPosition] = value;
                 mMilestoneSize++;
             }
             else
             {
                 Console.WriteLine("Milestone Number too large!");
             }
-            Console.WriteLine("the position is: " + position);
-            mMilestoneCurrentPosition = position;
+            mMilestoneCurrentArrPosition = arrPosition;
 
         }
 
@@ -90,15 +89,15 @@ namespace WindowsFormsApp1
         public void setMMilestoneCommand(string value)
         {
             Console.WriteLine("we in COMMMANDD %%%%%%%%%%%");
-            if (mMilestoneCurrentPosition < mMilestoneCommand.Length - 1)
+            if (mMilestoneCurrentArrPosition < mMilestoneCommand.Length - 1)
             {
-                mMilestoneCommand[mMilestoneCurrentPosition] = value;
+                mMilestoneCommand[mMilestoneCurrentArrPosition] = value;
             }
             else
             {
                 Console.WriteLine("Milestone Command Number too large!");
             }
-            Console.WriteLine("the position for command is: " + mMilestoneCurrentPosition);
+            Console.WriteLine("the position for command is: " + mMilestoneCurrentArrPosition);
         }
 
         public string getMMilestoneComment(int pos) { return mMilestoneComment[pos]; }
@@ -106,15 +105,15 @@ namespace WindowsFormsApp1
         {
             Console.WriteLine("we in COMMENTSS &&&&&&&&&&&");
      
-            if (mMilestoneCurrentPosition < mMilestoneComment.Length - 1)
+            if (mMilestoneCurrentArrPosition < mMilestoneComment.Length - 1)
             {
-                mMilestoneComment[mMilestoneCurrentPosition] = value;
+                mMilestoneComment[mMilestoneCurrentArrPosition] = value;
             }
             else
             {
                 Console.WriteLine("Milestone Comment POosition too large!");
             }
-            Console.WriteLine("the position is: " + mMilestoneCurrentPosition);
+            Console.WriteLine("the position is: " + mMilestoneCurrentArrPosition);
         }
 
         //estimated end date and time
@@ -286,17 +285,22 @@ namespace WindowsFormsApp1
 
                     }
                     //gets milestone command
+                    //if command is remove, sets comment to ""
                     else if (aLine.Contains("Command"))
-                    {
-                        
+                    {  
                         prog.setMMilestoneCommand(parsedValue);
-                        Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentPosition));
+                        if(parsedValue == "Remove")
+                        {
+                            prog.setMMilestoneComment("");
+                        }
+                        Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentArrPosition));
                     }
+                    //gets milestone comment and adds it to correlated position with command and num
+                    //if there is no comment like when a remove command is given, comment is set to "" in command if statement
                     else if(aLine.Contains("Comment"))
-                    {
-                        
+                    {                       
                         prog.setMMilestoneComment(parsedValue);
-                        Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentPosition));
+                        Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentArrPosition));
                     }
                     //calls helper function to retrieve estimated date and times
                     else if (aLine.Contains("Estimated"))
@@ -338,9 +342,8 @@ namespace WindowsFormsApp1
                 aLine = strReader.ReadLine();
             }
             Sharepoint sp = new Sharepoint(prog);
-            sp.addList();
-            //sp.addColumns();
-            sp.addAllData();
+            sp.TryGetList(prog.getMProjectTitle());     
+            sp.addAllData(prog.getMProjectTitle());
         }
 
         public void helperActualParser(Program prog)
@@ -358,32 +361,37 @@ namespace WindowsFormsApp1
         }
         public void helperEstimatedParser(string str, Program prog)
         {
+            //Console.WriteLine("original string is: " + str);
             if (str.Contains("&nbsp;"))
             {
                 str = str.Replace("&nbsp;", " ");
             }
-            string parsedValue = estValueParser(str);
+            //Console.WriteLine("string after nbsp is: " + str);
+            string originalStr = str;
+            string parsedTime = estValueParser(str);
+            string parsedDate = valueParser(originalStr);
+            
             //check original string to see what title it contains
             //then input the parsed value into the correct category
             if(str.Contains("Estimated Start Time"))
             {
-                prog.setMEstStartTime(parsedValue);
+                prog.setMEstStartTime(parsedTime);
                 Console.WriteLine("est start time has been set to:  " + prog.getMEstStartTime());
             }
             else if(str.Contains("Estimated End Time"))
             {
-                prog.setMEstEndTime(parsedValue);
+                prog.setMEstEndTime(parsedTime);
                 Console.WriteLine("est end time has been set to:  " + prog.getMEstEndTime());
             }
             else if (str.Contains("Estimated Start Date"))
             {
-                prog.setMEstStartDate(parsedValue);
+                prog.setMEstStartDate(parsedDate);
                 Console.WriteLine("est start date has been set to:  " + prog.getMEstStartDate());
             }
             else if (str.Contains("Estimated End Date"))
             {
-                prog.setMEstEndDate(parsedValue);
-                Console.WriteLine("est start date has been set to:  " + prog.getMEstEndDate());
+                prog.setMEstEndDate(parsedDate);
+                Console.WriteLine("est end date has been set to:  " + prog.getMEstEndDate());
             }
         }
 
@@ -391,6 +399,7 @@ namespace WindowsFormsApp1
         //starts from end of the string
         public string valueParser(string str)
         {
+            Console.WriteLine("finding current status reason string is: " + str);
             //str.Replace("&nbsp;", " ");
             str.Trim();
             string newStr = "";

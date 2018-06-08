@@ -4,6 +4,7 @@ using Microsoft.SharePoint.Client;
 using SP = Microsoft.SharePoint.Client;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.SharePoint;
 
 namespace WindowsFormsApp1
 {
@@ -31,132 +32,175 @@ namespace WindowsFormsApp1
             //clientContext.Credentials = new SharePointOnlineCredentials("devin@denaliai.com", password);
         }
 
-        public void addList()
+        public void TryGetList(string listTitle)
         {
-            //To refactor code, in order to garbage collect, maybe use this using statement to be safer
-            //using (ClientContext context = new ClientContext("http://yourserver/"))
-            //{
-            //    context.Credentials = new NetworkCredential("user", "password", "domain");
-            //    List list = context.Web.Lists.GetByTitle("Some List");
-            //    context.ExecuteQuery();
-
-            //    // Now update the list.
-            //}
-
-
-            // Starting with ClientContext, the constructor requires a URL to the 
-            // server running SharePoint.  
-
-            // The SharePoint web at the URL.
             Web web = mClientContext.Web;
-            //SP.List projList = web.Lists.GetByTitle(mProg.getMProjectTitle());
+   
+            SP.List projList = web.Lists.GetByTitle(listTitle);
             try
             {
-                //incorrect way of checking if proj list is null or not
-                //if (projList == null)
-                //{
-                Console.WriteLine("So it is not null??");
-                ListCreationInformation creationInfo = new ListCreationInformation();
-                creationInfo.Title = mProg.getMProjectTitle();
-                creationInfo.TemplateType = (int)ListTemplateType.GenericList;
-                List list = web.Lists.Add(creationInfo);
-                list.Description = "Project Updates";
-                list.Update();
                 mClientContext.ExecuteQuery();
-                addColumns(); //add static columns for each list created
-                //}
-                //else
-                //{
-                //    addAllData(); //list found so just input the data
-               // }
+
             }
-            catch(PropertyOrFieldNotInitializedException pfnie)       
+            catch (ServerException se)
             {
-                Console.WriteLine(pfnie);
+                try
+                {
+                    Console.WriteLine("the hash code is: " + se.GetHashCode());
+                    if (se.Message.Contains("does not exist at site with URL"))
+                    {
+                        //incorrect way of checking if proj list is null or not
+                        Console.WriteLine("So it is not null??");
+                        ListCreationInformation creationInfo = new ListCreationInformation();
+                        creationInfo.Title = listTitle;
+                        creationInfo.TemplateType = (int)ListTemplateType.GenericList;
+                        projList = web.Lists.Add(creationInfo);
+                        projList.Description = "Project Updates";
+                        projList.Update();
+                        mClientContext.ExecuteQuery();
+                        addColumns(listTitle);
+                    }                  
+                }
+                catch (PropertyOrFieldNotInitializedException pfnie)
+                {
+                    Console.WriteLine(pfnie);
+                }
             }
         }
 
-        public void addColumns()
+        public void addColumns(string listTitle)
         {
             Web web = mClientContext.Web;
-            SP.List projList = mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle());
-            //if (projList != null)
-            //{
-                // Adding the Custom field to the List. Here the OOB SPFieldText has been selected as the “FieldType”
-                SP.FieldCollection collFields = projList.Fields;
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated Start Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated Start Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated End Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated End Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Actual Start Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Actual End Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Actual Start Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Actual End Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Milestone Number' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Milestone Comment' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Time Spent' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Resources' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status Reason' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-
-                //test field
-                projList.Fields.AddFieldAsXml("<Field DisplayName='test' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-                //SP.Field oField = collFields.GetByTitle("MyNewField");
-                Console.WriteLine("Executing end of adding columns");
-                mClientContext.ExecuteQuery();
-            //}
+            SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
+            // Adding the Custom field to the List. Here the OOB SPFieldText has been selected as the “FieldType”
+            SP.FieldCollection collFields = projList.Fields;
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated Start Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated Start Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated End Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Estimated End Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Actual Start Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Actual End Time' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Actual Start Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Actual End Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Milestone Number' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Milestone Comment' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Time Spent' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Resources' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            projList.Fields.AddFieldAsXml("<Field DisplayName='Current Status Reason' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            //test field
+            projList.Fields.AddFieldAsXml("<Field DisplayName='test' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            //SP.Field oField = collFields.GetByTitle("MyNewField");
+            Console.WriteLine("Executing end of adding columns");
+            projList.Update();
+            mClientContext.ExecuteQuery();
         }
 
-        public void addAllData()
+        public void addAllData(string listTitle)
         {
             Web web = mClientContext.Web;
-            SP.List projList = mClientContext.Web.Lists.GetByTitle(mProg.getMProjectTitle());
+            SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
             
             ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
             ListItem oListItem = projList.AddItem(itemCreateInfo);
-            Console.WriteLine("The estimated start time is: " + mProg.getMEstStartTime());
-            //oListItem.DisplayName() = mProg.getMEstStartTime();
-            oListItem["test"] = "so it worked";
-            //oListItem["Estimated Start Time"] = mProg.getMEstStartTime();
-            //oListItem["Estimated Start Date"] = mProg.getMEstStartDate();
-            //oListItem["Estimated End Time"] = mProg.getMEstEndTime();
-            //oListItem["Estimated End Date"] = mProg.getMEstEndDate();
-            //oListItem["Actual Start Time"] = mProg.getMActualStartTime();
-            //oListItem["Actual Start Date"] = mProg.getMActualStartDate();
-            
-            for(int i = 0; i<mProg.getMMilestoneSize(); i++)
+
+            Console.WriteLine("milestone size is: " + mProg.getMMilestoneSize());
+            oListItem["Estimated_x0020_Start_x0020_Time"] = mProg.getMEstStartTime();
+            oListItem["Estimated_x0020_Start_x0020_Date"] = mProg.getMEstStartDate();
+            oListItem["Estimated_x0020_End_x0020_Time"] = mProg.getMEstEndTime();
+            oListItem["Estimated_x0020_End_x0020_Date"] = mProg.getMEstEndDate();
+            oListItem["Actual_x0020_Start_x0020_Time"] = mProg.getMActualStartTime();
+            oListItem["Actual_x0020_Start_x0020_Date"] = mProg.getMActualStartDate();
+            oListItem["Time_x0020_Spent"] = mProg.getMTimeSpent();
+            oListItem["Resources"] = mProg.getMResources();
+            oListItem["Current_x0020_Status"] = mProg.getMCurrentStatus();
+            oListItem["Current_x0020_Status_x0020_Reaso"] = mProg.getMStatusReason();
+            //CamlQuery camlQuery = new CamlQuery();
+            //camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='Title'>" +
+            //    "<Value Type='Number'>0</Value></Geq></Where></Query><RowLimit>20</RowLimit></View>";
+            //ListItemCollection collListItem = projList.GetItems(camlQuery);
+
+            //mClientContext.Load(collListItem);
+
+            //mClientContext.ExecuteQuery();
+
+            //foreach (ListItem queriedListItem in collListItem)
+            //{
+            //    Console.WriteLine("ID: {0} \nTitle: {1} \nNumber: {2}", oListItem.Id, queriedListItem["Milestone_x0020_Number"]);
+            //}
+
+            //ON THE RIGHT TRACK FOR XML QUERY FOR UPDATE AND REMOVE
+            //SP.CamlQuery myQuery = new SP.CamlQuery();
+            //myQuery.ViewXml = "< View >< Where >< Eq >< FieldRef Name = 'Title' /></ Eq > </ Where ></ View >";
+            //  SP.ListItemCollection myItems = projList.GetItems(myQuery);
+            //mClientContext.Load(myItems);
+            //mClientContext.ExecuteQuery();
+            //string result = string.Empty;
+            //foreach(ListItem eachItem in myItems)
+            //{
+            //    result += eachItem["Title"].ToString() + Environment.NewLine;
+            //    Console.WriteLine("result is: " + result);
+
+            //}
+
+            //make sure they cannot add a greater milestone number than the size
+            int initialMilestoneRowCount = 0;
+            for (int i = 0; i<mProg.getMMilestoneSize(); i++)
             {
-                //oListItem["Milestone Number"] = mProg.getMMilestoneNum(i);
+
+                Console.WriteLine("the milestone command is: " + mProg.getMMilestoneCommand(i).Trim());
+                //if (mProg.getMMilestoneCommand(i).Trim() == "Update")
+                //{
+                //    int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(i));
+                //    oListItem["Milestone_x0020_Number"] = projList.GetItemById(i);
+                //    oListItem["Milestone_x0020_Comment"] = projList.GetItemById(i);
+                //    oListItem["Milestone_x0020_Number"] = milestoneNum;
+                //    oListItem["Milestone_x0020_Comment"] = mProg.getMMilestoneComment(i);
+                //}
+                if (mProg.getMMilestoneCommand(i).Trim() == "Add")
+                {
+                    if (initialMilestoneRowCount != 0)
+                    {
+                        Console.WriteLine("in Add if statement");
+                        ListItemCreationInformation itemCreateMilestone = new ListItemCreationInformation();
+                        ListItem milestoneListItem = projList.AddItem(itemCreateMilestone);
+                        int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(i));
+                        Console.WriteLine("milestone integer number converted now is: " + milestoneNum);
+                        milestoneListItem["Milestone_x0020_Number"] = milestoneNum;
+                        milestoneListItem["Milestone_x0020_Comment"] = mProg.getMMilestoneComment(i);
+                        milestoneListItem.Update();
+                    }
+                    else
+                    {
+                        int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(i));
+                        Console.WriteLine("milestone integer number converted now is: " + milestoneNum);
+                        oListItem["Milestone_x0020_Number"] = milestoneNum;
+                        oListItem["Milestone_x0020_Comment"] = mProg.getMMilestoneComment(i);
+                        oListItem.Update();
+                        initialMilestoneRowCount++;
+                    }
+                }
+                //else if (mProg.getMMilestoneCommand(i).Trim() == "Remove")
+                //{
+                //    ListItem milestoneListItem = projList.GetItemById(mProg.getMMilestoneNum(i));
+                //    milestoneListItem.DeleteObject();
+                //}
+
+                Console.WriteLine("the milestone number is: " + mProg.getMMilestoneNum(i));
+                mClientContext.ExecuteQuery();
             }
             //oListItem["Milestone Number"] = mProg.getMMilestoneNum();
-            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
-            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
-            //oListItem["Actual Start Date"] = mProg.getMEstStartDate();
             
-            //oListItem["Body"] = mProg.getMEstStartTime();
             Console.WriteLine("MUST UPDATE");
+
             oListItem.Update();
 
             mClientContext.ExecuteQuery();
         }
     }
-    //SPList newList = web.Lists["My List"];
-
-    //// create Text type new column called "My Column"
-    //newList.Fields.Add("My Column", SPFieldType.Text, true);
-    //        SP.List oList = mClientContext.Web.Lists.GetByTitle("Announcements");
-    //ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
-    //ListItem oListItem = oList.AddItem(itemCreateInfo); ;
-    //        oListItem["Title"] = "My New Item!";
-    //        oListItem["Body"] = "Hello World! It is a pleasure to be here" +
-    //            "What can I say?" +
-    //            "I'm simply human";
-
-    //        oListItem.Update();
-
-    //        clientContext.ExecuteQuery();
 }
 
 //SYNTAX:
 //to grab field //SP.Field oField = collFields.GetByTitle("MyNewField");
-//
+//Note : If you have space in your display name it's converted to '_x0020_' , '_' is converted to '%5f'
+//TIP: go to sharepoint list settings then click on column to edit then look at end of url ---- that is the internal name
