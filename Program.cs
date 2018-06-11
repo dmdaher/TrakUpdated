@@ -152,7 +152,7 @@ namespace WindowsFormsApp1
         public string getMStatusReason() { return mStatusReason; }
         public void setMStatusReason(string value) { mStatusReason = value; }
 
-
+        private ExchangeService mExchService;
 
         //<summary>
         // The main entry point for the application.
@@ -240,7 +240,7 @@ namespace WindowsFormsApp1
                 prog.setMBody(fullBodyText);
                 prog.setMProjectTitle(subject);
                 Console.WriteLine("body is: " + prog.getMBody());
-                prog.parseEmail(prog);
+                prog.parseEmail(prog, service);
                
                 
             }
@@ -254,7 +254,7 @@ namespace WindowsFormsApp1
         //PARSE THE STRING
         //LOOK FOR KEYWORDS LIKE Milestone, Estimated Start Time, Resources,
         //get the value after keyword and put that in variable to add to SP list
-        public void parseEmail(Program prog)
+        public void parseEmail(Program prog, ExchangeService service)
         {
             //Program prog = new Program();
             string aLine = null;
@@ -342,8 +342,22 @@ namespace WindowsFormsApp1
                 aLine = strReader.ReadLine();
             }
             Sharepoint sp = new Sharepoint(prog);
-            sp.TryGetList(prog.getMProjectTitle());     
-            sp.addAllData(prog.getMProjectTitle());
+            try
+            {
+                sp.TryGetList(prog.getMProjectTitle());
+                sp.addAllData(prog.getMProjectTitle());
+                //Console.WriteLine("the contents are: " + service.Url);
+                EmailMessage email = new EmailMessage(service);
+                email.ToRecipients.Add("devin@denaliai.com");
+                email.Subject = "Updated Project: " + mProjectTitle;
+                email.Body = new MessageBody("Your Sharepoint project has successfully been updated! Looking forward to your next update :)");
+                email.Send();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            
         }
 
         public void helperActualParser(Program prog)
