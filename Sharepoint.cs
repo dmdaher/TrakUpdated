@@ -145,10 +145,13 @@ namespace WindowsFormsApp1
 
             //make sure they cannot add a greater milestone number than the size
             int initialMilestoneRowCount = 0;
-            for (int i = 0; i<mProg.getMMilestoneSize(); i++)
+            //ITERATE THROUGH MAP NOT FOR LOOP
+            //foreach(var pair in mProg.getMMilestoneNum())
+            for (int i = 0; i<mProg.getMMilestoneSize(); i++) // foreach var in map
             {
 
                 Console.WriteLine("the milestone command is: " + mProg.getMMilestoneCommand(i).Trim());
+                
                 //if (mProg.getMMilestoneCommand(i).Trim() == "Update")
                 //{
                 //    int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(i));
@@ -180,6 +183,7 @@ namespace WindowsFormsApp1
                         initialMilestoneRowCount++;
                     }
                 }
+                
                 //else if (mProg.getMMilestoneCommand(i).Trim() == "Remove")
                 //{
                 //    ListItem milestoneListItem = projList.GetItemById(mProg.getMMilestoneNum(i));

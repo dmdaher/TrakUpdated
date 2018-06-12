@@ -31,8 +31,11 @@ namespace WindowsFormsApp1
         private string mActualStartTime;
         //milestone arrays, pos, and size
         private string[] mMilestoneNum;
+        private Dictionary<int, string> mMilestoneNumMap;
+        private Dictionary<int, string> mMilestoneCommandMap;
+        private Dictionary<int, string> mMilestoneCommentMap;
         private int mMilestoneSize;
-        private int mMilestoneCurrentArrPosition;
+        private int mMilestoneCurrentNum;
         private string[] mMilestoneCommand;
         private string[] mMilestoneComment;
         private string mEstEndDate;
@@ -49,6 +52,9 @@ namespace WindowsFormsApp1
             this.mMilestoneNum = new string[20];
             this.mMilestoneCommand = new string[20];
             this.mMilestoneComment = new string[20];
+            this.mMilestoneNumMap = new Dictionary<int, string>();
+            this.mMilestoneCommandMap = new Dictionary<int, string>();
+            this.mMilestoneCommentMap = new Dictionary<int, string>();
             mMilestoneSize = 0;
         }
         //subject and body of email
@@ -65,55 +71,172 @@ namespace WindowsFormsApp1
         //milestone size
         public int getMMilestoneSize() { return mMilestoneSize; }
         //milestone number, command, and comment
-        public string getMMilestoneNum(int pos) { return mMilestoneNum[pos]; }
+        public string getMMilestoneNum(int pos)
+        {
+            //fix get function, use conditional statement if possible. looks cleaner
+            //string value = "";
+            mMilestoneNumMap.TryGetValue(pos, out string value);
+            if (value == null)
+            {
+                value = "";
+            }
+            //mMilestoneNumMap.TryGetValue(pos, out value);
+            Console.WriteLine("NUM: what is the value if the key is NOT found? " + value);
+            Console.WriteLine("NUM: what is the value if the key is found " + value); 
+            return value;
+        }
         //keep milestone number around under 4-5
         public void setMMilestoneNum(string value)
         {
-            int position;
-            position = Convert.ToInt32(value);
-            int arrPosition = position - 1;
-            if(arrPosition < mMilestoneNum.Length - 1 && arrPosition >= 0)
+            
+            int key;
+            key = Convert.ToInt32(value);
+            Console.WriteLine("the key when setting milestone is: " + key);
+
+            //string result = "";
+            try
             {
-                mMilestoneNum[arrPosition] = value;
-                mMilestoneSize++;
-            }
-            else
+                Console.WriteLine("inside try ");
+                if (!mMilestoneNumMap.TryGetValue(key, out string result))
+                {
+                    Console.WriteLine("the key when setting milestone is: " + key);
+                    mMilestoneNumMap.Add(key, value);
+                    Console.WriteLine("added key: " + key);
+                }
+                else
+                {
+                    Console.WriteLine("key already exists...Are you trying to replace it?!");
+                }
+            }catch(ArgumentNullException ane)
             {
-                Console.WriteLine("Milestone Number too large!");
+                Console.WriteLine("setting milestone caught exception" + ane);
+            }catch(ArgumentException ae)
+            {
+                Console.WriteLine("setting milestone caught exception #2" + ae);
             }
-            mMilestoneCurrentArrPosition = arrPosition;
+            
+            mMilestoneSize++;
+            mMilestoneCurrentNum = key;
+            //Console.WriteLine("the position when setting milestone is: " + value);
+            //int arrPosition = key - 1;
+            //if(arrPosition < mMilestoneNum.Length - 1 && arrPosition >= 0)
+            //{
+            //    mMilestoneNum[arrPosition] = value;
+            //    mMilestoneSize++;
+            //    //Console.WriteLine("in if setting milestone");
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Milestone Number too large!");
+            //}
+
 
         }
 
-        public string getMMilestoneCommand(int pos) { return mMilestoneCommand[pos]; }
+        public string getMMilestoneCommand(int pos)
+        {          
+            mMilestoneCommandMap.TryGetValue(pos, out string value);
+            if (value == null)
+            {
+                value = "";
+            }
+            Console.WriteLine("COMMAND: what is the value if the key is NOT found? " + value + " and position is: " + pos);
+            //Console.WriteLine("COMMAND: what is the value if the key is found " + value);
+            return value;
+            //return mMilestoneCommand[pos];
+        }
         public void setMMilestoneCommand(string value)
         {
+            //int key;
+            //key = Convert.ToInt32(value);
+            //mMilestoneCommandMap.Add(key, value); //what if key already exists & what if invalid key like a string
             Console.WriteLine("we in COMMMANDD %%%%%%%%%%%");
-            if (mMilestoneCurrentArrPosition < mMilestoneCommand.Length - 1)
+
+            Console.WriteLine("the command key when setting milestone is: " + value);
+
+            //string result = "";
+            try
             {
-                mMilestoneCommand[mMilestoneCurrentArrPosition] = value;
+                Console.WriteLine("inside command try ");
+                if (!mMilestoneCommandMap.TryGetValue(mMilestoneCurrentNum, out string result))
+                {
+                    Console.WriteLine("the key when setting milestone is: " + value);
+                    mMilestoneCommandMap.Add(mMilestoneCurrentNum, value);
+                    Console.WriteLine("added command key: " + value);
+                }
+                else
+                {
+                    Console.WriteLine("command key already exists...Are you trying to replace it?!");
+                }
             }
-            else
+            catch (ArgumentNullException ane)
             {
-                Console.WriteLine("Milestone Command Number too large!");
+                Console.WriteLine("setting milestone caught exception" + ane);
             }
-            Console.WriteLine("the position for command is: " + mMilestoneCurrentArrPosition);
+            catch (ArgumentException ae)
+            {
+                Console.WriteLine("setting milestone caught exception #2" + ae);
+            }
+            //if (mMilestoneCurrentArrPosition < mMilestoneCommand.Length - 1)
+            //{
+            //    mMilestoneCommand[mMilestoneCurrentArrPosition] = value;
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Milestone Command Number too large!");
+            //}
+            //Console.WriteLine("the position for command is: " + mMilestoneCurrentArrPosition);
         }
 
-        public string getMMilestoneComment(int pos) { return mMilestoneComment[pos]; }
+        public string getMMilestoneComment(int pos)
+        {
+            string value = "";
+            mMilestoneCommentMap.TryGetValue(pos, out value);
+            if(value == null)
+            {
+                value = "";
+            }
+            Console.WriteLine("COMMENT: what is the value if the comment key is NOT found? " + value);
+            Console.WriteLine("Comment: what is the value if the comment key is found " + value);
+            return value;
+            //return mMilestoneComment[pos];
+        }
         public void setMMilestoneComment(string value)
         {
+            Console.WriteLine("current milestone pos is: " + mMilestoneCurrentNum);
             Console.WriteLine("we in COMMENTSS &&&&&&&&&&&");
-     
-            if (mMilestoneCurrentArrPosition < mMilestoneComment.Length - 1)
+            //string result = "";
+            try
             {
-                mMilestoneComment[mMilestoneCurrentArrPosition] = value;
+                Console.WriteLine("inside comment try ");
+                if (!mMilestoneCommentMap.TryGetValue(mMilestoneCurrentNum, out string result))
+                {
+                    Console.WriteLine("the key when setting milestone is: " + mMilestoneCurrentNum);
+                    mMilestoneCommentMap.Add(mMilestoneCurrentNum, value);
+                    Console.WriteLine("added comment key: " + value);
+                }
+                else
+                {
+                    Console.WriteLine("comment key already exists...Are you trying to replace it?!");
+                }
             }
-            else
+            catch (ArgumentNullException ane)
             {
-                Console.WriteLine("Milestone Comment POosition too large!");
+                Console.WriteLine("setting milestone caught exception" + ane);
             }
-            Console.WriteLine("the position is: " + mMilestoneCurrentArrPosition);
+            catch (ArgumentException ae)
+            {
+                Console.WriteLine("setting milestone caught exception #2" + ae);
+            }
+            //if (mMilestoneCurrentArrPosition < mMilestoneComment.Length - 1)
+            //{
+            //    mMilestoneComment[mMilestoneCurrentArrPosition] = value;
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Milestone Comment POosition too large!");
+            //}
+            //Console.WriteLine("the position is: " + mMilestoneCurrentArrPosition);
         }
 
         //estimated end date and time
@@ -293,14 +416,14 @@ namespace WindowsFormsApp1
                         {
                             prog.setMMilestoneComment("");
                         }
-                        Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentArrPosition));
+                        Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentNum));
                     }
                     //gets milestone comment and adds it to correlated position with command and num
                     //if there is no comment like when a remove command is given, comment is set to "" in command if statement
                     else if(aLine.Contains("Comment"))
                     {                       
                         prog.setMMilestoneComment(parsedValue);
-                        Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentArrPosition));
+                        Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentNum));
                     }
                     //calls helper function to retrieve estimated date and times
                     else if (aLine.Contains("Estimated"))
@@ -346,12 +469,13 @@ namespace WindowsFormsApp1
             {
                 sp.TryGetList(prog.getMProjectTitle());
                 sp.addAllData(prog.getMProjectTitle());
-                //Console.WriteLine("the contents are: " + service.Url);
-                EmailMessage email = new EmailMessage(service);
-                email.ToRecipients.Add("devin@denaliai.com");
-                email.Subject = "Updated Project: " + mProjectTitle;
-                email.Body = new MessageBody("Your Sharepoint project has successfully been updated! Looking forward to your next update :)");
-                email.Send();
+                
+                //Create Response Email
+                //EmailMessage email = new EmailMessage(service);
+                //email.ToRecipients.Add("devin@denaliai.com");
+                //email.Subject = "Updated Project: " + mProjectTitle;
+                //email.Body = new MessageBody("Your Sharepoint project has successfully been updated! Looking forward to your next update :)");
+                //email.Send();
             }
             catch (Exception e)
             {
