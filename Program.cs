@@ -18,9 +18,88 @@ using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp1
 {
+    public class MailItem
+    {
+        public string mFrom;
+        public string[] mRecipients;
+        public string mSubject;
+        public string mBody;
+        public string mDateAndTimeSent;
+        public string mMailboxAddress;
+        public string mMailboxName;
+        public bool mIsAuthority;
+
+        public MailItem()
+        {
+            mIsAuthority = false;
+            mSubject = "";
+        }
+
+        public void loadMail(FindItemsResults<Item> findResults, ExchangeService service, Program prog)
+        {
+            foreach (Item item in findResults.Items)
+            {
+                EmailMessage message = EmailMessage.Bind(service, item.Id, PropertySet.FirstClassProperties);
+                message.Load();
+                this.mFrom = message.From.ToString();
+                this.mMailboxAddress = message.From.Address;
+                this.mMailboxName = message.From.Name;
+
+                //if(mail.mMailboxAddress == "omar.hassan@t-mobile.com" || mail.mMailboxName == "Omar Hassan") { mail.mIsAuthority = true; }
+                if (this.mMailboxAddress == "ddaher@usc.edu") { this.mIsAuthority = true; }
+                    //if (this.mMailboxAddress == "ddaher@usc.edu")
+                    //{
+                    //    EmailErrors ee = new EmailErrors(prog);
+                    //    ee.sendMilestoneErrorEmail();
+                    //}
+                    //string[] recipients = ((Microsoft.Exchange.WebServices.Data.EmailAddressCollection)item[EmailMessageSchema.ToRecipients]).Select(recipient => recipient.Address).ToArray();
+                Console.WriteLine("the address is: " + this.mFrom);
+                Console.WriteLine("the mailbox type is: " + message.From.MailboxType);
+                Console.WriteLine("the mailbox address is: " + message.From.Address);
+                Console.WriteLine("the mailbox name is: " + message.From.Name);
+                this.mBody = message.Body.Text;
+                this.mSubject = message.Subject;
+
+
+                
+
+                string dateAndTimeSent = message.DateTimeSent.ToString();
+                this.mDateAndTimeSent = message.DateTimeSent.ToString();
+                prog.setMDateAndTimeSent(dateAndTimeSent);
+
+                Console.WriteLine("the date and time sent is: " + this.mDateAndTimeSent);
+                
+                Console.WriteLine("the email read is: " + this.mSubject);
+
+                //Do other stuff
+            }
+        }
+        
+    }
+
+    public class Milestone
+    {
+        string command;
+        string comment;
+        int number;
+
+        public Milestone(int num, string command, string comment)
+        {
+            this.command = command;
+            this.comment = comment;
+            this.number = num;
+        }
+        public void setCommand(string command) { this.command = command; }
+        public string getCommand() { return this.command; }
+        public void setComment(string comment) { this.comment = comment; }
+        public string getComment() { return this.comment; }
+        public void setNumber(int num) { this.number = num; }
+        public int getNumber() { return this.number; }
+    }
     public class Program
     {
-        ExchangeService serviceInstance;
+        private EmailErrors mEmailError;
+        private ExchangeService mService;
         public string ExceptionMessage { get; }
         //public string MProjectTitle { get; set; }
         //public string MBody { get; set; }
@@ -30,14 +109,16 @@ namespace WindowsFormsApp1
         private string mActualStartDate;
         private string mActualStartTime;
         //milestone arrays, pos, and size
-        private string[] mMilestoneNum;
+        private Milestone mCurrMilestone;
+        //private string[] mMilestoneNum;
         private Dictionary<int, string> mMilestoneNumMap;
         private Dictionary<int, string> mMilestoneCommandMap;
         private Dictionary<int, string> mMilestoneCommentMap;
+        private Dictionary<int, Milestone> mMilestoneObjMap;
         private int mMilestoneSize;
         private int mMilestoneCurrentNum;
-        private string[] mMilestoneCommand;
-        private string[] mMilestoneComment;
+        //private string[] mMilestoneCommand;
+        //private string[] mMilestoneComment;
         private string mEstEndDate;
         private string mEstStartDate;
         private string mEstEndTime;
@@ -49,14 +130,23 @@ namespace WindowsFormsApp1
 
         Program()
         {
-            this.mMilestoneNum = new string[20];
-            this.mMilestoneCommand = new string[20];
-            this.mMilestoneComment = new string[20];
+            Service service = new Service();
+            this.mService = service.getMService();
+            //this.mMilestoneNum = new string[20];
+            //this.mMilestoneCommand = new string[20];
+            //this.mMilestoneComment = new string[20];
+            this.mCurrMilestone = new Milestone(0, "", "");
+            this.mMilestoneObjMap = new Dictionary<int, Milestone>();
             this.mMilestoneNumMap = new Dictionary<int, string>();
             this.mMilestoneCommandMap = new Dictionary<int, string>();
             this.mMilestoneCommentMap = new Dictionary<int, string>();
             mMilestoneSize = 0;
+            this.mEmailError = new EmailErrors(this);
+            
         }
+
+        //service instance
+        public ExchangeService getMService() { return mService; }
         //subject and body of email
         public string getMProjectTitle() { return mProjectTitle; }
         public void setMProjectTitle(string value) { mProjectTitle = value; }
@@ -68,8 +158,67 @@ namespace WindowsFormsApp1
         public string getMDateAndTimeSent() { return mDateAndTimeSent; }
         public void setMDateAndTimeSent(string value) { mDateAndTimeSent = value; }
 
+        //milestone object
+        public void setMilestone()
+        {
+            try
+            {
+                Console.WriteLine("inside try ");
+                int num = this.mCurrMilestone.getNumber();
+                if (!mMilestoneObjMap.TryGetValue(num, out Milestone result))
+                {
+                    Console.WriteLine("the key when setting milestone is: " + num);
+                    this.mMilestoneObjMap.Add(num, this.mCurrMilestone);
+                    Console.WriteLine("added key: " + num);
+                }
+                else
+                {
+                    Console.WriteLine("milestone already exists...Are you trying to replace it?!");
+                    //this.mEmailError.sendMilestoneErrorEmail();  //won't get into this else bc creates a new program everytime
+                    //need to figure out how to maintain same program OR read data that already exists first and check with new data inputted
+                }
+            }
+            catch (ArgumentNullException ane)
+            {
+                Console.WriteLine("setting milestone caught exception" + ane);
+            }
+            catch (ArgumentException ae)
+            {
+                Console.WriteLine("setting milestone caught exception #2" + ae);
+            }
+        }
+        public Milestone getMilestone(int pos)
+        {
+            mMilestoneObjMap.TryGetValue(pos, out Milestone value);
+            if (value == null)
+            {
+                value = null;
+            }
+            //mMilestoneNumMap.TryGetValue(pos, out value);
+            Console.WriteLine("NUM: what is the value num if the key is found? " + value.getNumber());
+            Console.WriteLine("NUM: what is the value comment if the key is found " + value.getComment());
+            return value;
+        }
+        public Dictionary<int, Milestone> getMilestoneObjMap()
+        {
+            return this.mMilestoneObjMap;
+        }
         //milestone size
         public int getMMilestoneSize() { return mMilestoneSize; }
+
+        //grab milestone number dictionary
+        public Dictionary<int, string> getMMilestoneNumMap()
+        {
+            return this.mMilestoneNumMap;
+        }
+        public Dictionary<int, string> getMMilestoneCommandMap()
+        {
+            return this.mMilestoneCommandMap;
+        }
+        public Dictionary<int, string> getMMilestoneCommentMap()
+        {
+            return this.mMilestoneCommentMap;
+        }
         //milestone number, command, and comment
         public string getMMilestoneNum(int pos)
         {
@@ -106,8 +255,11 @@ namespace WindowsFormsApp1
                 else
                 {
                     Console.WriteLine("key already exists...Are you trying to replace it?!");
+                    //this.mEmailError.sendMilestoneErrorEmail();  //won't get into this else bc creates a new program everytime
+                    //need to figure out how to maintain same program OR read data that already exists first and check with new data inputted
                 }
-            }catch(ArgumentNullException ane)
+            }
+            catch(ArgumentNullException ane)
             {
                 Console.WriteLine("setting milestone caught exception" + ane);
             }catch(ArgumentException ae)
@@ -275,7 +427,10 @@ namespace WindowsFormsApp1
         public string getMStatusReason() { return mStatusReason; }
         public void setMStatusReason(string value) { mStatusReason = value; }
 
-        private ExchangeService mExchService;
+
+
+
+        //private ExchangeService mExchService;
 
         //<summary>
         // The main entry point for the application.
@@ -291,30 +446,41 @@ namespace WindowsFormsApp1
 
                 //connect to exchange
                 //autodiscoverurl
-                ExchangeService service = new ExchangeService(ExchangeVersion.Exchange2013_SP1);
-                service.Credentials = new WebCredentials("devin@denaliai.com", "Welcome2018");
-                service.UseDefaultCredentials = false;
-                service.TraceEnabled = true;
-                service.TraceFlags = TraceFlags.All;
-                service.AutodiscoverUrl("devin@denaliai.com", RedirectionUrlValidationCallback);
-
-                //write an email
-
-                //Console.WriteLine("the contents are: " + service.Url);
-                //EmailMessage email = new EmailMessage(service);
-                //email.ToRecipients.Add("devin@denaliai.com");
-                //email.Subject = "HelloWorld";
-                //email.Body = new MessageBody("Content: This is the first email I've sent by using the EWS Managed API.");
-                //email.Send();
+                //Service service = new Service();
+                Program prog = new Program();
+                ExchangeService service = prog.getMService();          
 
                 // Bind the Inbox folder to the service object.
                 Microsoft.Exchange.WebServices.Data.Folder inbox = Microsoft.Exchange.WebServices.Data.Folder.Bind(service, WellKnownFolderName.Inbox);
                 // The search filter to get unread email.
                 Console.WriteLine("BEFORE");
-                SearchFilter sf = new SearchFilter.SearchFilterCollection(LogicalOperator.And, new SearchFilter.IsEqualTo(EmailMessageSchema.IsRead, false));
 
+                //TIP to create search filter
+                //first create search collection list
+                //add any search filter like a filter that looks for a certain email or checks if email is unread or read
+                //then if you want more searches, create a new search filter that ANDS the previous list collection
+                //then if you want to let's say check for a domain name in the email, create new list
+                //with that new list, add new search filter & add previous filter
+                //then create a new search filter and AND or OR it with previous collection
+                //idea is this starts chaining filters together
+                //Another tip: Make sure you properly use AND and OR...e.g. can't filter two email domains 
+                //  and say you want the substring to contain denali AND tmobile
+                //  so you choose OR operator to say i want to filter for either domain
+
+                //SearchFilter sf = new SearchFilter.SearchFilterCollection(LogicalOperator.And, new SearchFilter.IsEqualTo(EmailMessageSchema.IsRead, false));
+                List<SearchFilter> searchANDFilter = new List<SearchFilter>();
+                //searchANDFilter.Add(sf);
+                ExtendedPropertyDefinition PidTagSenderSmtpAddress = new ExtendedPropertyDefinition(0x5D01, MapiPropertyType.String);
+                //searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@denaliai.com"));
+                searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@denaliai.com"));
+                searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@T-Mobile.com"));
+                //Console.WriteLine("the address is: " + PidTagSenderSmtpAddress.PropertySet.Value.ToString());
+                SearchFilter domainSF = new SearchFilter.SearchFilterCollection(LogicalOperator.Or, searchANDFilter);
+                List<SearchFilter> searchFinalFilter = new List<SearchFilter>();
+                searchFinalFilter.Add(new SearchFilter.SearchFilterCollection(LogicalOperator.And, new SearchFilter.IsEqualTo(EmailMessageSchema.IsRead, false)));
+                searchFinalFilter.Add(domainSF);
+                SearchFilter finalSF = new SearchFilter.SearchFilterCollection(LogicalOperator.And, searchFinalFilter);
                 //new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender, "@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase)
-                Console.WriteLine("the email message schema sender is: " + EmailMessageSchema.Sender);
                 //SearchFilter.ContainsSubstring subjectFilter = new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender,"@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase);
 
                 Console.WriteLine("AFTER");
@@ -324,48 +490,45 @@ namespace WindowsFormsApp1
                 // This method call results in a FindItem call to EWS.
                 view.PropertySet = new PropertySet(BasePropertySet.IdOnly, EmailMessageSchema.Sender);
                 
-                FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, sf, view);
+                //FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, sf, view);
+                FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, finalSF, view);
                 //service.LoadPropertiesForItems(findResults, view.PropertySet);
-                string body = "";
-                string subject = "";
-                Program prog = new Program();
-                foreach (Item item in findResults.Items)
+                //Program prog = new Program();
+
+                try
                 {
-                    EmailMessage message = EmailMessage.Bind(service, item.Id, PropertySet.FirstClassProperties);
-
-                    message.Load();
-                    
-                    body = message.Body.Text; //MAYBE TRY TO CONVERT TO JUST THE BODY TEXT NOT THE HTML
-
-                    subject = message.Subject;
-
-                    string dateAndTimeSent = message.DateTimeSent.ToString();
-                    prog.setMDateAndTimeSent(dateAndTimeSent);
-
-                    Console.WriteLine("the date and time sent is: " + dateAndTimeSent);
-                    Console.WriteLine("the email read is: " + subject);
-
-                    //Do other stuff
-                }
-                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                doc.LoadHtml(body);
-                String fullBodyText = "";
-                foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//text()"))
-                {
-                    if(node.InnerText != "")
-                    {
-                        Console.WriteLine(node.InnerText);
-                        fullBodyText += "\n" + node.InnerText;
+                    MailItem mail = new MailItem();
+                    mail.loadMail(findResults, service, prog);
+                    if(mail.mIsAuthority == true)
+                    { //idea is to send project report if authority is true
+                        EmailErrors ee = new EmailErrors(prog);
+                        ee.sendMilestoneErrorEmail();
                     }
-                }
-               
-                //fullBodyText = adjustString(fullBodyText);
-                prog.setMBody(fullBodyText);
-                prog.setMProjectTitle(subject);
-                Console.WriteLine("body is: " + prog.getMBody());
-                prog.parseEmail(prog, service);
-               
-                
+                    else
+                    {
+                        HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                        //doc.LoadHtml(body);
+                        doc.LoadHtml(mail.mBody);
+                        String fullBodyText = "";
+                        foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//text()"))
+                        {
+                            if (node.InnerText != "")
+                            {
+                                Console.WriteLine(node.InnerText);
+                                fullBodyText += "\n" + node.InnerText;
+                            }
+                        }
+                        //fullBodyText = adjustString(fullBodyText);
+                        prog.setMBody(fullBodyText);
+                        //prog.setMProjectTitle(subject);
+                        prog.setMProjectTitle(mail.mSubject);
+                        Console.WriteLine("body is: " + prog.getMBody());
+                        prog.parseEmail(prog, service);
+                    }
+                }catch(Exception e)
+                {
+                    Console.WriteLine(e);
+                } 
             }
             catch(Exception e)
             {
@@ -388,33 +551,39 @@ namespace WindowsFormsApp1
             aLine = strReader.ReadLine();
             while (aLine != null)
             {
-                
+
                 //aLine.ToLower();
                 //aLine = aLine.Replace(" ", String.Empty);
+
                 aLine.Trim();
                 if (aLine != null && aLine != "")
                 {
                     //aParagraph = aParagraph + aLine + " ";                
                     //Console.WriteLine("the line is: " + aLine);
                     string parsedValue = valueParser(aLine);
+                    parsedValue = parsedValue.Trim();
                     if (aLine.Contains("Milestone"))
                     {
-                        
+                        this.mCurrMilestone = new Milestone(0, "","");
                         //setting milestone converts the string milestone to a milestone number
                         prog.setMMilestoneNum(parsedValue);
                         int pos = Convert.ToInt32(parsedValue);
+                        this.mCurrMilestone.setNumber(pos);
                         Console.WriteLine("milestone is SET! " + prog.getMMilestoneNum(pos));
                         milestoneCount++;
-
+                        //mMilestoneCurrentNum = pos;
                     }
                     //gets milestone command
                     //if command is remove, sets comment to ""
                     else if (aLine.Contains("Command"))
-                    {  
+                    {
                         prog.setMMilestoneCommand(parsedValue);
-                        if(parsedValue == "Remove")
+                        this.mCurrMilestone.setCommand(parsedValue);
+                        if (parsedValue == "Remove")
                         {
                             prog.setMMilestoneComment("");
+                            this.mCurrMilestone.setComment("");
+                            this.setMilestone();
                         }
                         Console.WriteLine("milestoneCommand is READY! " + prog.getMMilestoneCommand(mMilestoneCurrentNum));
                     }
@@ -424,6 +593,8 @@ namespace WindowsFormsApp1
                     {                       
                         prog.setMMilestoneComment(parsedValue);
                         Console.WriteLine("milestone is PERFECT! " + prog.getMMilestoneComment(mMilestoneCurrentNum));
+                        this.mCurrMilestone.setComment(parsedValue);
+                        this.setMilestone();
                     }
                     //calls helper function to retrieve estimated date and times
                     else if (aLine.Contains("Estimated"))
@@ -468,7 +639,8 @@ namespace WindowsFormsApp1
             try
             {
                 sp.TryGetList(prog.getMProjectTitle());
-                sp.addAllData(prog.getMProjectTitle());
+                sp.readData(prog.getMProjectTitle());
+                //sp.addAllData(prog.getMProjectTitle());
                 
                 //Create Response Email
                 //EmailMessage email = new EmailMessage(service);
@@ -476,6 +648,9 @@ namespace WindowsFormsApp1
                 //email.Subject = "Updated Project: " + mProjectTitle;
                 //email.Body = new MessageBody("Your Sharepoint project has successfully been updated! Looking forward to your next update :)");
                 //email.Send();
+
+
+                
             }
             catch (Exception e)
             {
@@ -621,34 +796,12 @@ namespace WindowsFormsApp1
             }
             return strArr;
         }
-
-        private static bool RedirectionUrlValidationCallback(string redirectionUrl)
-        {
-            // The default for the validation callback is to reject the URL.
-            bool result = false;
-            Uri redirectionUri = new Uri(redirectionUrl);
-            // Validate the contents of the redirection URL. In this simple validation
-            // callback, the redirection URL is considered valid if it is using HTTPS
-            // to encrypt the authentication credentials. 
-            if (redirectionUri.Scheme == "https")
-            {
-                result = true;
-            }
-            return result;
-        }
     }
 }
 
 
-
-//namespace Microsoft.SDK.SharePointServices.Samples
-//{
-//    class CreateListItem
-//    {
-//        static void Main()
-//        {
-//            string siteUrl = "https://uscedu.sharepoint.com/sites/Test123";
-//            SecureString password = new SecureString();
+//NOTE: when inputting password, you must add to char array
+//SecureString password = new SecureString();
 
 //            foreach (char c in "Devindaher10".ToCharArray())
 //                password.AppendChar(c);
@@ -656,18 +809,4 @@ namespace WindowsFormsApp1
 //            ClientContext clientContext = new ClientContext(siteUrl);
 //            SP.List oList = clientContext.Web.Lists.GetByTitle("Announcements");
 //            clientContext.Credentials = new SharePointOnlineCredentials("ddaher@usc.edu", password);
-
-//            ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
-//            ListItem oListItem = oList.AddItem(itemCreateInfo); ;
-//            oListItem["Title"] = "My New Item!";
-//            oListItem["Body"] = "Hello World! It is a pleasure to be here" +
-//                "What can I say?" +
-//                "I'm simply human";
-
-//            oListItem.Update();
-
-//            clientContext.ExecuteQuery();
-//        }
-//    }
-//}
 
