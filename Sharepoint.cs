@@ -17,8 +17,11 @@ namespace WindowsFormsApp1
         private bool mIsNewList;
         //private int mErrorCode;
         private EmailErrors mEmailError;
+        private int mInitialMilestoneRowCount;
         public Sharepoint(Program prog)
         {
+            this.mIsNewList = true;
+            this.mInitialMilestoneRowCount = 0;
             mIsNewList = false;
             //this.mErrorCode = 0;
             this.mProg = prog;
@@ -39,7 +42,17 @@ namespace WindowsFormsApp1
             //clientContext.Credentials = new SharePointOnlineCredentials("devin@denaliai.com", password);
         }
 
-        public void TryGetList(string listTitle)
+        public EmailErrors getMEmailErrors()
+        {
+            return this.mEmailError;
+        }
+
+        public void setMIsNewList(bool value)
+        {
+            this.mIsNewList = value;
+        }
+
+        public bool TryGetList(string listTitle)
         {
             Web web = mClientContext.Web;
    
@@ -47,7 +60,8 @@ namespace WindowsFormsApp1
             try
             {
                 mClientContext.ExecuteQuery();
-                mIsNewList = false;
+                this.mIsNewList = false;
+                return false;
             }
             catch (ServerException se)
             {
@@ -67,11 +81,15 @@ namespace WindowsFormsApp1
                         mClientContext.ExecuteQuery();
                         mIsNewList = true;
                         addColumns(listTitle);
-                    }                  
+                        this.mIsNewList = true;
+                        return true;
+                    }
+                    return true;
                 }
                 catch (PropertyOrFieldNotInitializedException pfnie)
                 {
                     Console.WriteLine(pfnie);
+                    return true;
                 }
             }
         }
@@ -92,19 +110,114 @@ namespace WindowsFormsApp1
             collFields.AddFieldAsXml("<Field DisplayName='Actual End Date' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Milestone Number' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Milestone Comment' Type='Choice' />", true, AddFieldOptions.DefaultValue);
-            collFields.AddFieldAsXml("<Field DisplayName='Milestone Comment' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Time Spent' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Resources' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Current Status' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             collFields.AddFieldAsXml("<Field DisplayName='Current Status Reason' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             //test field
-            collFields.AddFieldAsXml("<Field DisplayName='test' Type='Choice' />", true, AddFieldOptions.DefaultValue);
+            //collFields.AddFieldAsXml("<Field DisplayName='test' Type='Choice' />", true, AddFieldOptions.DefaultValue);
             //SP.Field oField = collFields.GetByTitle("MyNewField");
             Console.WriteLine("Executing end of adding columns");
             projList.Update();
             mClientContext.ExecuteQuery();
         }
 
+
+        //public void readData(string listTitle)
+        //{
+        //    try
+        //    {
+        //        Web web = mClientContext.Web;
+        //        SP.CamlQuery myQuery = new SP.CamlQuery();
+        //        SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
+        //        //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Estimated_x0020_Start_x0020_Time' /> <Value Type = 'Text'> 9:30 </Value> </ Eq > </ Where ></ View >";
+
+        //        //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
+        //        SP.ListItemCollection collectItems = projList.GetItems(myQuery);
+        //        //SP.ListItemCollection collectItems = projList.GetItems(CamlQuery.CreateAllItemsQuery());
+        //        mClientContext.Load(collectItems);
+        //        mClientContext.ExecuteQuery();
+        //        //Dictionary<int, string> milestoneDictionary = mProg.getMMilestoneNumMap();
+        //        //Dictionary<int, string> milestoneCommandDict = mProg.getMMilestoneCommandMap();
+        //        //Dictionary<int, string> milestoneCommentDict = mProg.getMMilestoneCommentMap();
+        //        int count = collectItems.Count;
+        //        Dictionary<int, Milestone> milestoneDict = mProg.getMilestoneObjMap();
+        //        bool errorCheck = this.mEmailError.getErrorCheck();
+        //        int sizeOfMap = mProg.getMilestoneObjMap().Count;
+        //        int maxInputKey = 0;
+        //        if(milestoneDict.Count > 0)
+        //        {
+        //            maxInputKey = milestoneDict.Keys.Max();
+        //            Console.WriteLine("largest key in map before entering for loop is: " + maxInputKey);
+        //        }
+
+        //        int maxNumInTable = 0;
+
+        //        //error code = -1 means default, no error has occurred so far
+        //        //error code = 0 means success, continue
+        //        //error code = 1 is milestone already exists
+        //        //error code = 2 is milestone is too large
+        //        //so far that is the system
+        //        foreach (SP.ListItem oItem in collectItems)
+        //        {
+        //            string milestoneStrInTable = (string)oItem["Milestone_x0020_Number"];
+        //            int milestoneNumInTable = Convert.ToInt32(milestoneStrInTable);
+        //            Console.WriteLine("key in table is: " + milestoneNumInTable);
+        //            if (milestoneNumInTable > maxNumInTable)
+        //            {
+        //                maxNumInTable = milestoneNumInTable;
+        //            }
+        //            if (milestoneDict.ContainsKey(milestoneNumInTable))
+        //            {
+        //                //break when error code is not default and not success -- means error occurred
+        //                if (this.mEmailError.getErrorCode() != 0 && this.mEmailError.getErrorCode() != -1)
+        //                {
+        //                    break;
+        //                }
+        //                else
+        //                {
+        //                    milestoneDict.TryGetValue(milestoneNumInTable, out Milestone currMilestone);  //result holds the milestone that is correlated with the key
+        //                    string command = currMilestone.getCommand().Trim();
+        //                    Console.WriteLine("value of command is: " + command);
+        //                    if (command == "Add") { this.mEmailError.setErrorCheck(true); }
+        //                    milestoneCommandHandler(projList, oItem, currMilestone);
+        //                }
+        //                //Error duplicate key, send email back
+        //            }
+        //            //need to check if table doesn't have key b/c user may input milestone to update that does not exist
+        //        }
+        //        //ADD THIS ERROR BACK IN IN IN ININI!!!!!!!!
+
+        //        //if(maxInputKey != maxNumInTable + 1 && this.mIsNewList == false && this.mEmailError.getErrorCode() == -1)
+        //        //{
+        //        //    this.mEmailError.setErrorCheck(true);
+        //        //    this.mEmailError.setErrorCode(2);
+        //        //    Console.WriteLine("ERROR 2 --- TOO LARGE");
+        //        //    Console.WriteLine("what is the max input key? " + maxInputKey + " and the max in table is: " + maxNumInTable);
+        //        //    mEmailError.sendMilestoneTooLargeErrorEmail();
+        //        //    //Error, too large of a milestone inputted
+        //        //}
+        //        if (!this.mEmailError.getErrorCheck())
+        //        {
+        //            mClientContext.ExecuteQuery();
+        //            //addAllData(listTitle);
+        //        }
+        //    }catch(CollectionNotInitializedException cnie)
+        //    {
+        //        if (cnie.Message.Contains("The collection has not been initialized"))
+        //        {
+        //            Console.WriteLine("WEL WLE EWLL");
+        //        }
+
+        //    }catch(InvalidOperationException ioe)
+        //    {
+        //        Console.WriteLine(ioe);
+        //    }
+
+        //}
+
+        //this is the read data that does not update anything. it simply reads and outputs error if anything wrong is happening
+        //like an already existing milestone
         public void readData(string listTitle)
         {
             try
@@ -113,23 +226,25 @@ namespace WindowsFormsApp1
                 SP.CamlQuery myQuery = new SP.CamlQuery();
                 SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
                 //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Estimated_x0020_Start_x0020_Time' /> <Value Type = 'Text'> 9:30 </Value> </ Eq > </ Where ></ View >";
-                
+
                 //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
                 SP.ListItemCollection collectItems = projList.GetItems(myQuery);
                 //SP.ListItemCollection collectItems = projList.GetItems(CamlQuery.CreateAllItemsQuery());
                 mClientContext.Load(collectItems);
                 mClientContext.ExecuteQuery();
-                //Dictionary<int, string> milestoneDictionary = mProg.getMMilestoneNumMap();
-                //Dictionary<int, string> milestoneCommandDict = mProg.getMMilestoneCommandMap();
-                //Dictionary<int, string> milestoneCommentDict = mProg.getMMilestoneCommentMap();
                 int count = collectItems.Count;
                 Dictionary<int, Milestone> milestoneDict = mProg.getMilestoneObjMap();
-                bool errorCheck = false;
+                bool errorCheck = this.mEmailError.getErrorCheck();
                 int sizeOfMap = mProg.getMilestoneObjMap().Count;
-                int maxInputKey = milestoneDict.Keys.Max();
-                Console.WriteLine("largest key in map before entering for loop is: " + maxInputKey);
+                int minInputKey = 0;
+                if (milestoneDict.Count > 0)
+                {
+                    minInputKey = milestoneDict.Keys.Min();
+                    Console.WriteLine("largest key in map before entering for loop is: " + minInputKey);
+                }
+
                 int maxNumInTable = 0;
-                
+
                 //error code = -1 means default, no error has occurred so far
                 //error code = 0 means success, continue
                 //error code = 1 is milestone already exists
@@ -145,128 +260,264 @@ namespace WindowsFormsApp1
                         maxNumInTable = milestoneNumInTable;
                     }
                     if (milestoneDict.ContainsKey(milestoneNumInTable))
-                    {                 
-                        milestoneDict.TryGetValue(milestoneNumInTable, out Milestone currMilestone);  //result holds the milestone that is correlated with the key
-                        string command = currMilestone.getCommand().Trim();
-                        Console.WriteLine("value of command is: " + command);
-                        //Error duplicate key, send email back
-                        if (command == "Add")
+                    {
+                        //break when error code is not default and not success -- means error occurred
+                        if (this.mEmailError.getErrorCode() != 0 && this.mEmailError.getErrorCode() != -1)
                         {
-
-                            Console.WriteLine("Key is duplicated! and the max in table is: " + maxNumInTable);
-                            errorCheck = true;
-                            mEmailError.sendMilestoneAlreadyExistsErrorEmail();
-                            this.mEmailError.setErrorCode(1);
                             break;
                         }
-                        //remove milestone - just removes the comment
-                        //sets errors code to 0 meaning success
-                        else if(command == "Remove")
+                        else
                         {
-                            Console.WriteLine("MUST CHANGE COMMENT & REMOVE! -- the key is: " + milestoneNumInTable);
-                            oItem["Milestone_x0020_Comment"] = "";
-                            this.mEmailError.setErrorCode(0);
+                            milestoneDict.TryGetValue(milestoneNumInTable, out Milestone currMilestone);  //result holds the milestone that is correlated with the key
+                            string command = currMilestone.getCommand().Trim();
+                            Console.WriteLine("value of command is: " + command);
+                            if (command == "Add")
+                            {
+                                this.mEmailError.setErrorCheck(true);
+                                mEmailError.sendMilestoneAlreadyExistsErrorEmail();
+                                this.mEmailError.setErrorCode(1);
+                            }
+                            //milestoneCommandHandler(projList, oItem, currMilestone);
                         }
-                        else if(command == "Update")
-                        {
-                            string newComment = currMilestone.getComment();
-                            oItem["Milestone_x0020_Comment"] = newComment;
-                            this.mEmailError.setErrorCode(0);
-                        }
-                        oItem.Update();
+                        //Error duplicate key, send email back
                     }
+                    //need to check if table doesn't have key b/c user may input milestone to update that does not exist
                 }
-                if(maxInputKey != maxNumInTable + 1 && this.mIsNewList == false && this.mEmailError.getErrorCode() == -1)
+                //ADD THIS ERROR BACK IN IN IN ININI!!!!!!!!
+
+                if (minInputKey != maxNumInTable + 1 && this.mIsNewList == false && this.mEmailError.getErrorCode() == -1)
                 {
-                    errorCheck = true;
+                    this.mEmailError.setErrorCheck(true);
                     this.mEmailError.setErrorCode(2);
                     Console.WriteLine("ERROR 2 --- TOO LARGE");
-                    Console.WriteLine("what is the max input key? " + maxInputKey + " and the max in table is: " + maxNumInTable);
+                    Console.WriteLine("what is the max input key? " + minInputKey + " and the max in table is: " + maxNumInTable);
                     mEmailError.sendMilestoneTooLargeErrorEmail();
                     //Error, too large of a milestone inputted
                 }
-                if (!errorCheck)
+                if (!this.mEmailError.getErrorCheck())
                 {
                     mClientContext.ExecuteQuery();
-                    addAllData(listTitle);
+                    //addAllData(listTitle);
                 }
-            }catch(CollectionNotInitializedException cnie)
+            }
+            catch (CollectionNotInitializedException cnie)
             {
                 if (cnie.Message.Contains("The collection has not been initialized"))
                 {
                     Console.WriteLine("WEL WLE EWLL");
                 }
-                    
-            }catch(InvalidOperationException ioe)
+
+            }
+            catch (InvalidOperationException ioe)
             {
                 Console.WriteLine(ioe);
             }
-            
+
         }
-        public void addAllData(string listTitle)
+
+        public void milestoneCommandHandler(List projList, ListItem oItem, Milestone currMilestone)
         {
-            Web web = mClientContext.Web;
-            SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
-            
-            ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
-            ListItem oListItem = projList.AddItem(itemCreateInfo);
-
-            Console.WriteLine("milestone size is: " + mProg.getMMilestoneSize());
-            oListItem["Estimated_x0020_Start_x0020_Time"] = mProg.getMEstStartTime();
-            oListItem["Estimated_x0020_Start_x0020_Date"] = mProg.getMEstStartDate();
-            oListItem["Estimated_x0020_End_x0020_Time"] = mProg.getMEstEndTime();
-            oListItem["Estimated_x0020_End_x0020_Date"] = mProg.getMEstEndDate();
-            oListItem["Actual_x0020_Start_x0020_Time"] = mProg.getMActualStartTime();
-            oListItem["Actual_x0020_Start_x0020_Date"] = mProg.getMActualStartDate();
-            oListItem["Time_x0020_Spent"] = mProg.getMTimeSpent();
-            oListItem["Resources"] = mProg.getMResources();
-            oListItem["Current_x0020_Status"] = mProg.getMCurrentStatus();
-            oListItem["Current_x0020_Status_x0020_Reaso"] = mProg.getMStatusReason();
-
-
-            SP.CamlQuery myQuery = new SP.CamlQuery();
-            myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
-            SP.ListItemCollection collectItems = projList.GetItems(myQuery);
-            mClientContext.Load(collectItems);
-
-            mClientContext.ExecuteQuery();
-            int initialMilestoneRowCount = 0;
-            
-            foreach (var pair in mProg.getMMilestoneNumMap())
+            string command = currMilestone.getCommand().Trim();
+            string comment = currMilestone.getComment().Trim();
+            int number = currMilestone.getNumber();
+            if (command == "Add") //adding milestone that already exists. ERROR
             {
-                Console.WriteLine("the milestone command is: " + mProg.getMMilestoneCommand(pair.Key).Trim());
-                if (mProg.getMMilestoneCommand(pair.Key).Trim() == "Add")
+                if (this.mEmailError.getErrorCheck())
+                {
+                    this.mEmailError.setErrorCheck(true);
+                    mEmailError.sendMilestoneAlreadyExistsErrorEmail();
+                    this.mEmailError.setErrorCode(1);
+                }
+                else
                 {
                     //explain why i have this counter?..
-                    if (initialMilestoneRowCount != 0)
+                    if (this.mInitialMilestoneRowCount != 0)
                     {
                         Console.WriteLine("in Add if statement");
                         ListItemCreationInformation itemCreateMilestone = new ListItemCreationInformation();
                         ListItem milestoneListItem = projList.AddItem(itemCreateMilestone);
-                        int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(pair.Key));
-                        Console.WriteLine("milestone integer number converted now is: " + milestoneNum);
-                        milestoneListItem["Milestone_x0020_Number"] = milestoneNum;
-                        milestoneListItem["Milestone_x0020_Comment"] = mProg.getMMilestoneComment(pair.Key);
+                        //int milestoneNum = Convert.ToInt32(currMilestone.getNumber());
+                        Console.WriteLine("milestone integer number converted now is: " + number);
+                        milestoneListItem["Milestone_x0020_Number"] = number;
+                        milestoneListItem["Milestone_x0020_Comment"] = comment;
                         milestoneListItem.Update();
                     }
                     else
                     {
-                        int milestoneNum = Convert.ToInt32(mProg.getMMilestoneNum(pair.Key));
-                        Console.WriteLine("milestone integer number converted now is: " + milestoneNum);
-                        oListItem["Milestone_x0020_Number"] = milestoneNum;
-                        oListItem["Milestone_x0020_Comment"] = mProg.getMMilestoneComment(pair.Key);
-                        oListItem.Update();
-                        initialMilestoneRowCount++;
+                        Console.WriteLine("milestone integer number converted now is: " + number);
+                        oItem["Milestone_x0020_Number"] = number;
+                        oItem["Milestone_x0020_Comment"] = comment;
+                        //oItem.Update();
+                        this.mInitialMilestoneRowCount++;
                     }
                 }
-                Console.WriteLine("the milestone number is: " + mProg.getMMilestoneNum(pair.Key));
+            }
+            //remove milestone - just removes the comment
+            //sets errors code to 0 meaning success
+            else if (command == "Remove") //removing milestone comment
+            {
+                Console.WriteLine("MUST CHANGE COMMENT & REMOVE! -- the key is: " + number);
+                oItem["Milestone_x0020_Comment"] = "";
+                this.mEmailError.setErrorCode(0);
+            }
+            else if (command == "Update") //updating milestone
+            {
+                string newComment = comment;
+                oItem["Milestone_x0020_Comment"] = newComment;
+                this.mEmailError.setErrorCode(0);
+            }
+            oItem.Update();
+        }
+
+        public bool milestonesAreOrdered(Dictionary<int, Milestone> milestoneDict, bool isNewList)
+        {
+            int milestoneNum = 0;
+            int prevNum = 0;
+            int initialCount = 0;
+            if(milestoneDict.Count != 0)
+            {
+                if (milestoneDict.Keys.Min() != 1 && isNewList == true)
+                {
+                    return false;
+                }
+                foreach (var milestone in milestoneDict.OrderBy(i => i.Key))
+                {
+                    Milestone currMilestone = milestone.Value;
+                    milestoneNum = currMilestone.getNumber();
+                    if (milestoneNum != prevNum + 1 && initialCount != 0)
+                    {
+                        return false;
+                    }
+                    Console.WriteLine("the milestone order is milestonenum with: " + milestoneNum + " and prevnum with: " + prevNum);
+                    prevNum = currMilestone.getNumber();
+                    initialCount++;
+                }
+            }
+            return true;
+        }
+
+        //public void milestone
+        public void addAllData(string listTitle)
+        {
+            Web web = mClientContext.Web;
+            SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
+            Dictionary<int, Milestone> milestoneDict = mProg.getMilestoneObjMap();
+            bool isOrdered = false;
+            Console.WriteLine("the error code is: " + this.mEmailError.getErrorCode());
+            if (this.mIsNewList == false)
+            {
+                readData(listTitle);
+                isOrdered = milestonesAreOrdered(milestoneDict, false);
+            }
+            else
+            {
+                isOrdered = milestonesAreOrdered(milestoneDict, true);
+            }
+            if ((this.mEmailError.getErrorCode() == 0 || this.mEmailError.getErrorCode() == -1) && isOrdered == true)
+            {
+                ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
+                ListItem oListItem = projList.AddItem(itemCreateInfo);
+
+                Console.WriteLine("milestone size is: " + mProg.getMMilestoneSize());
+                oListItem["Estimated_x0020_Start_x0020_Time"] = mProg.getMEstStartTime();
+                oListItem["Estimated_x0020_Start_x0020_Date"] = mProg.getMEstStartDate();
+                oListItem["Estimated_x0020_End_x0020_Time"] = mProg.getMEstEndTime();
+                oListItem["Estimated_x0020_End_x0020_Date"] = mProg.getMEstEndDate();
+                oListItem["Actual_x0020_Start_x0020_Time"] = mProg.getMActualStartTime();
+                oListItem["Actual_x0020_Start_x0020_Date"] = mProg.getMActualStartDate();
+                oListItem["Time_x0020_Spent"] = mProg.getMTimeSpent();
+                oListItem["Resources"] = mProg.getMResources();
+                oListItem["Current_x0020_Status"] = mProg.getMCurrentStatus();
+                oListItem["Current_x0020_Status_x0020_Reaso"] = mProg.getMStatusReason();
+
+                //oListItem.Update();
+                //SP.CamlQuery myQuery = new SP.CamlQuery();
+                //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
+                //SP.ListItemCollection collectItems = projList.GetItems(myQuery);
+                //mClientContext.Load(collectItems);
+                foreach (var pair in mProg.getMilestoneObjMap().OrderBy(i => i.Key))
+                {
+                    Milestone milestone = pair.Value;
+                    Console.WriteLine("the milestone command is: " + milestone.getCommand().Trim());
+                    //if (milestone.getCommand().Trim() == "Add")
+                    //{
+                        milestoneCommandHandler(projList, oListItem, milestone);
+                        Console.WriteLine("the milestone number is: " + mProg.getMMilestoneNum(pair.Key));
+                    //}
+                    //}else if(milestone.getCommand().Trim() == "Update" || milestone.getCommand().Trim() == "Remove")
+                    //{
+                    //    milestoneCommandHandler(projList, oListItem, milestone);
+                    //}
+                    //oListItem.Update();
+                    //mClientContext.ExecuteQuery();
+                }
+                Console.WriteLine("MUST UPDATE");
+                this.mInitialMilestoneRowCount = 0;
+                oListItem.Update();
+
                 mClientContext.ExecuteQuery();
             }
-            Console.WriteLine("MUST UPDATE");
+            else
+            {
+                this.mEmailError.setErrorCheck(true);
+                mEmailError.sendMilestoneTooLargeErrorEmail();
+                this.mEmailError.setErrorCode(3);
+            }
+        }
 
-            oListItem.Update();
+        public string createProjectReport(string listTitle)
+        {
+            try
+            {
+                Web web = mClientContext.Web;
+                SP.CamlQuery myQuery = new SP.CamlQuery();
+                SP.List projList = mClientContext.Web.Lists.GetByTitle(listTitle);
+                //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Estimated_x0020_Start_x0020_Time' /> <Value Type = 'Text'> 9:30 </Value> </ Eq > </ Where ></ View >";
 
-            mClientContext.ExecuteQuery();
+                //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
+                //SP.ListItemCollection collectItems = projList.GetItems(myQuery);
+                //myQuery.ViewXml = "< OrderBy > < FieldRef Name = 'Title' Ascending = 'False' /> </ OrderBy >";
+                SP.ListItemCollection collectItems = projList.GetItems(CamlQuery.CreateAllItemsQuery());
+                
+                mClientContext.Load(collectItems);
+                mClientContext.ExecuteQuery();
+                int count = collectItems.Count;
+                string fullReport = "";
+                foreach (SP.ListItem oItem in collectItems)
+                {
+                    string estimatedStartTime = (string)oItem["Estimated_x0020_Start_x0020_Time"];
+                    string estimatedEndTime = (string)oItem["Estimated_x0020_End_x0020_Time"];
+                    string estimatedStartDate = (string)oItem["Estimated_x0020_Start_x0020_Date"];
+                    string estimatedEndDate = (string)oItem["Estimated_x0020_End_x0020_Date"];
+                    string actualStartTime = (string)oItem["Actual_x0020_Start_x0020_Time"];
+                    string actualEndTime = (string)oItem["Actual_x0020_End_x0020_Time"];
+                    string actualStartDate = (string)oItem["Actual_x0020_Start_x0020_Date"];
+                    string actualEndDate = (string)oItem["Actual_x0020_End_x0020_Date"];
+                    string milestoneNumber = (string)oItem["Milestone_x0020_Number"];
+                    string milestoneComment = (string)oItem["Milestone_x0020_Comment"];
+                    string timeSpent = (string)oItem["Time_x0020_Spent"];
+                    string resources = (string)oItem["Resources"];
+                    string currentStatus = (string)oItem["Current_x0020_Status"];
+                    string currentStatusReason = (string)oItem["Current_x0020_Status_x0020_Reaso"];
+                    fullReport += "Here is all the data for this project: " + estimatedStartTime + "  ===  " + estimatedEndTime + "  ===  " + estimatedStartDate + "  ====  "
+                        + estimatedEndDate + "  ===  " + milestoneNumber + " ===  " + milestoneComment+ " \n /n";
+                    Console.WriteLine(fullReport);
+                }
+                return fullReport;
+            }
+            catch (CollectionNotInitializedException cnie)
+            {
+                if (cnie.Message.Contains("The collection has not been initialized"))
+                {
+                    Console.WriteLine(cnie);
+                }
+                return "";
+            }
+            catch (InvalidOperationException ioe)
+            {
+                Console.WriteLine(ioe);
+                return "";
+            }
         }
     }
 }

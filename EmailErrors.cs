@@ -3,17 +3,21 @@ using System;
 
 namespace WindowsFormsApp1
 {
-    internal class EmailErrors
+    public class EmailErrors
     {
         private Program mProg;
         private int mErrorCode;
+        private bool errorCheck;
         public EmailErrors(Program prog)
         {
+            this.errorCheck = false;
             this.mProg = prog;
             this.mErrorCode = -1;
             Console.WriteLine("ALRIGHTY");
         }
 
+        public void setErrorCheck(bool value) { this.errorCheck = value; }
+        public bool getErrorCheck() { return this.errorCheck; }
         public void setErrorCode(int code) { this.mErrorCode = code; }
         public int getErrorCode() { return this.mErrorCode; }
         public void sendMilestoneTooLargeErrorEmail()
@@ -22,7 +26,8 @@ namespace WindowsFormsApp1
             email.ToRecipients.Add("devin@denaliai.com");
             email.Subject = mProg.getMProjectTitle();
             email.Body = new MessageBody("OOOWWWEEEEE you really messed up that milestone number didn't you. " +
-                "WAYYYY TOO LARGE. Well, larger by the biggest one by more than 2. Should be consecutive numbers, cha feel?");
+                "WAYYYY TOO LARGE. Well, larger by the biggest one by more than 2. Should be consecutive numbers, cha feel?" +
+                "Or you just created a new list without starting at 1 with your milestone. lol");
             email.Send();
         }
         public void sendMilestoneAlreadyExistsErrorEmail()

@@ -473,7 +473,7 @@ namespace WindowsFormsApp1
                 ExtendedPropertyDefinition PidTagSenderSmtpAddress = new ExtendedPropertyDefinition(0x5D01, MapiPropertyType.String);
                 //searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@denaliai.com"));
                 searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@denaliai.com"));
-                searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@T-Mobile.com"));
+                searchANDFilter.Add(new SearchFilter.ContainsSubstring(PidTagSenderSmtpAddress, "@usc.edu"));
                 //Console.WriteLine("the address is: " + PidTagSenderSmtpAddress.PropertySet.Value.ToString());
                 SearchFilter domainSF = new SearchFilter.SearchFilterCollection(LogicalOperator.Or, searchANDFilter);
                 List<SearchFilter> searchFinalFilter = new List<SearchFilter>();
@@ -499,10 +499,14 @@ namespace WindowsFormsApp1
                 {
                     MailItem mail = new MailItem();
                     mail.loadMail(findResults, service, prog);
-                    if(mail.mIsAuthority == true)
+                    prog.setMProjectTitle(mail.mSubject);
+                    Console.WriteLine("&&&&&&&&&&&&&&&&&&&&&&&&the project title is: " + prog.getMProjectTitle());
+                    if (mail.mIsAuthority == true)
                     { //idea is to send project report if authority is true
-                        EmailErrors ee = new EmailErrors(prog);
-                        ee.sendMilestoneErrorEmail();
+                        //EmailErrors ee = new EmailErrors(prog);
+                        //ee.sendMilestoneErrorEmail();
+                        Sharepoint sp = new Sharepoint(prog);
+                        string fullReport = sp.createProjectReport(prog.getMProjectTitle());
                     }
                     else
                     {
@@ -638,9 +642,14 @@ namespace WindowsFormsApp1
             Sharepoint sp = new Sharepoint(prog);
             try
             {
-                sp.TryGetList(prog.getMProjectTitle());
-                sp.readData(prog.getMProjectTitle());
-                //sp.addAllData(prog.getMProjectTitle());
+                bool isNewList = false;
+                EmailErrors emailError = sp.getMEmailErrors();
+                isNewList = sp.TryGetList(prog.getMProjectTitle());
+                sp.addAllData(prog.getMProjectTitle());
+                //if (!isNewList)
+                //{
+                //    sp.readData(prog.getMProjectTitle());
+                //}
                 
                 //Create Response Email
                 //EmailMessage email = new EmailMessage(service);
