@@ -722,8 +722,7 @@ namespace WindowsFormsApp1
         public string valueParser(string str)
         {
             Console.WriteLine("finding current status reason string is: " + str);
-            //str.Replace("&nbsp;", " ");
-            str.Trim();
+            str = str.Replace("&nbsp;", " ").Trim();
             string newStr = "";
             for (int i = str.Length - 1; i >= 0; i--)
             {

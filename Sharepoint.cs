@@ -18,10 +18,12 @@ namespace WindowsFormsApp1
         //private int mErrorCode;
         private EmailErrors mEmailError;
         private int mInitialMilestoneRowCount;
+        private List<int> milestonesWithAddCommands;
         public Sharepoint(Program prog)
         {
             this.mIsNewList = true;
             this.mInitialMilestoneRowCount = 0;
+            milestonesWithAddCommands = new List<int>();
             mIsNewList = false;
             //this.mErrorCode = 0;
             this.mProg = prog;
@@ -255,37 +257,63 @@ namespace WindowsFormsApp1
                     string milestoneStrInTable = (string)oItem["Milestone_x0020_Number"];
                     int milestoneNumInTable = Convert.ToInt32(milestoneStrInTable);
                     Console.WriteLine("key in table is: " + milestoneNumInTable);
-                    if (milestoneNumInTable > maxNumInTable)
+                    milestoneDict.TryGetValue(milestoneNumInTable, out Milestone currMilestone);  //result holds the milestone that is correlated with the key
+                    if(currMilestone != null)
                     {
-                        maxNumInTable = milestoneNumInTable;
-                    }
-                    if (milestoneDict.ContainsKey(milestoneNumInTable))
-                    {
-                        //break when error code is not default and not success -- means error occurred
-                        if (this.mEmailError.getErrorCode() != 0 && this.mEmailError.getErrorCode() != -1)
+                        string command = currMilestone.getCommand().Trim();
+                        if (milestoneNumInTable > maxNumInTable)
                         {
-                            break;
+                            maxNumInTable = milestoneNumInTable;
                         }
-                        else
+                        if (milestoneDict.ContainsKey(milestoneNumInTable))
                         {
-                            milestoneDict.TryGetValue(milestoneNumInTable, out Milestone currMilestone);  //result holds the milestone that is correlated with the key
-                            string command = currMilestone.getCommand().Trim();
-                            Console.WriteLine("value of command is: " + command);
-                            if (command == "Add")
+                            //break when error code is not default and not success -- means error occurred
+                            if (this.mEmailError.getErrorCode() != 0 && this.mEmailError.getErrorCode() != -1)
                             {
-                                this.mEmailError.setErrorCheck(true);
-                                mEmailError.sendMilestoneAlreadyExistsErrorEmail();
-                                this.mEmailError.setErrorCode(1);
+                                break;
                             }
-                            //milestoneCommandHandler(projList, oItem, currMilestone);
+                            else
+                            {
+                                if (command == "Add")
+                                {
+                                    this.mEmailError.setErrorCheck(true);
+                                }
+                                milestoneCommandHandler(projList, oItem, currMilestone);
+                                //Console.WriteLine("value of command is: " + command);
+                                //if (command == "Add")
+                                //{
+                                //    this.mEmailError.setErrorCheck(true);
+                                //    mEmailError.sendMilestoneAlreadyExistsErrorEmail();
+                                //    this.mEmailError.setErrorCode(1);
+                                //}
+                                //else if (command == "Update")
+                                //{
+                                //    oItem["Milestone_x0020_Comment"] = currMilestone.getComment();
+                                //    this.mEmailError.setErrorCode(0);
+                                //}
+                                //else if (command == "Remove")
+                                //{
+                                //    oItem["Milestone_x0020_Comment"] = "";
+                                //    this.mEmailError.setErrorCode(0);
+                                //}
+                                //oItem.Update();
+                                
+                            }
+                            //Error duplicate key, send email back
                         }
-                        //Error duplicate key, send email back
+                        //else
+                        //{
+                        //    if (command == "Add")
+                        //    {
+                        //        this.milestonesWithAddCommands.Add(currMilestone.getNumber());
+                        //    }
+                        //}
                     }
                     //need to check if table doesn't have key b/c user may input milestone to update that does not exist
                 }
                 //ADD THIS ERROR BACK IN IN IN ININI!!!!!!!!
 
-                if (minInputKey != maxNumInTable + 1 && this.mIsNewList == false && this.mEmailError.getErrorCode() == -1)
+                if (minInputKey > maxNumInTable + 1 && this.mIsNewList == false && this.mEmailError.getErrorCode() == -1)
                 {
                     this.mEmailError.setErrorCheck(true);
                     this.mEmailError.setErrorCode(2);
@@ -369,6 +397,46 @@ namespace WindowsFormsApp1
             oItem.Update();
         }
 
+        public void milestoneAddHandler(List projList, ListItem oItem, Milestone currMilestone)
+        {
+            string command = currMilestone.getCommand().Trim();
+            string comment = currMilestone.getComment().Trim();
+            int number = currMilestone.getNumber();
+            if (command == "Add")
+            {
+                if (this.mEmailError.getErrorCheck())
+                {
+                    this.mEmailError.setErrorCheck(true);
+                    mEmailError.sendMilestoneAlreadyExistsErrorEmail();
+                    this.mEmailError.setErrorCode(1);
+                }
+                else
+                {
+                    //explain why i have this counter?..
+                    if (this.mInitialMilestoneRowCount != 0)
+                    {
+                        Console.WriteLine("in Add if statement");
+                        ListItemCreationInformation itemCreateMilestone = new ListItemCreationInformation();
+                        ListItem milestoneListItem = projList.AddItem(itemCreateMilestone);
+                        //int milestoneNum = Convert.ToInt32(currMilestone.getNumber());
+                        Console.WriteLine("milestone integer number converted now is: " + number);
+                        milestoneListItem["Milestone_x0020_Number"] = number;
+                        milestoneListItem["Milestone_x0020_Comment"] = comment;
+                        milestoneListItem.Update();
+                    }
+                    else
+                    {
+                        Console.WriteLine("milestone integer number converted now is: " + number);
+                        oItem["Milestone_x0020_Number"] = number;
+                        oItem["Milestone_x0020_Comment"] = comment;
+                        //oItem.Update();
+                        this.mInitialMilestoneRowCount++;
+                    }
+                }
+            }
+            oItem.Update();
+        }
+
         public bool milestonesAreOrdered(Dictionary<int, Milestone> milestoneDict, bool isNewList)
         {
             int milestoneNum = 0;
@@ -383,20 +451,33 @@ namespace WindowsFormsApp1
                 foreach (var milestone in milestoneDict.OrderBy(i => i.Key))
                 {
                     Milestone currMilestone = milestone.Value;
-                    milestoneNum = currMilestone.getNumber();
-                    if (milestoneNum != prevNum + 1 && initialCount != 0)
+                    if(currMilestone.getCommand() == "Add")
                     {
-                        return false;
+                        milestoneNum = currMilestone.getNumber();
+                        if (milestoneNum != prevNum + 1 && initialCount != 0)
+                        {
+                            return false;
+                        }
+                        Console.WriteLine("the milestone order is milestonenum with: " + milestoneNum + " and prevnum with: " + prevNum);
+                        prevNum = currMilestone.getNumber();
+                        initialCount++;
                     }
-                    Console.WriteLine("the milestone order is milestonenum with: " + milestoneNum + " and prevnum with: " + prevNum);
-                    prevNum = currMilestone.getNumber();
-                    initialCount++;
                 }
             }
             return true;
         }
 
-        //public void milestone
+        public void inputMilestoneAddCommands(Dictionary<int, Milestone> milestoneDict)
+        {
+            foreach (var milestone in milestoneDict.OrderBy(i => i.Key))
+            {
+                Milestone currMilestone = milestone.Value;
+                if(currMilestone.getCommand().Trim() == "Add")
+                {
+                    this.milestonesWithAddCommands.Add(currMilestone.getNumber());
+                }
+            }
+        }
         public void addAllData(string listTitle)
         {
             Web web = mClientContext.Web;
@@ -408,16 +489,17 @@ namespace WindowsFormsApp1
             {
                 readData(listTitle);
                 isOrdered = milestonesAreOrdered(milestoneDict, false);
+                inputMilestoneAddCommands(milestoneDict);
             }
             else
             {
                 isOrdered = milestonesAreOrdered(milestoneDict, true);
+                inputMilestoneAddCommands(milestoneDict);
             }
             if ((this.mEmailError.getErrorCode() == 0 || this.mEmailError.getErrorCode() == -1) && isOrdered == true)
             {
                 ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
                 ListItem oListItem = projList.AddItem(itemCreateInfo);
-
                 Console.WriteLine("milestone size is: " + mProg.getMMilestoneSize());
                 oListItem["Estimated_x0020_Start_x0020_Time"] = mProg.getMEstStartTime();
                 oListItem["Estimated_x0020_Start_x0020_Date"] = mProg.getMEstStartDate();
@@ -429,28 +511,77 @@ namespace WindowsFormsApp1
                 oListItem["Resources"] = mProg.getMResources();
                 oListItem["Current_x0020_Status"] = mProg.getMCurrentStatus();
                 oListItem["Current_x0020_Status_x0020_Reaso"] = mProg.getMStatusReason();
+                List<int> addCommand = new List<int>();
+                List<int> updateCommand = new List<int>();
+                List<int> removeCommand = new List<int>();
+                //if(this.mIsNewList == true)
+                //{
+                //    foreach (var pair in mProg.getMilestoneObjMap().OrderBy(i => i.Key))
+                //    {
+                //        Milestone milestone = pair.Value;
+                //        Console.WriteLine("the milestone command is: " + milestone.getCommand().Trim());
+                //        if (milestone.getCommand().Trim() == "Add")
+                //        {
+                //            milestoneAddHandler(projList, oListItem, milestone);
+                //        }
+                //    }
+                //}
+                if(this.milestonesWithAddCommands.Count > 0)
+                {
+                    for (int i = 0; i < this.milestonesWithAddCommands.Count; i++)
+                    {
+                        milestoneDict.TryGetValue(this.milestonesWithAddCommands[i], out Milestone milestone);
+                        if (milestone != null)
+                        {
+                            milestoneAddHandler(projList, oListItem, milestone);
+                            //if (milestone.getCommand().Trim() == "Update")
+                            //{
+                            //    updateCommand.Add(milestone.getNumber());
+                            //}
+                            //if (milestone.getCommand().Trim() == "Remove")
+                            //{
+                            //    removeCommand.Add(milestone.getNumber());
+                            //}
+                        }
+                    }
+                }
+
+                //foreach (var pair in mProg.getMilestoneObjMap().OrderBy(i => i.Key))
+                //{
+                //    Milestone milestone = pair.Value;
+                //    Console.WriteLine("the milestone command is: " + milestone.getCommand().Trim());
+                //    if (milestone.getCommand().Trim() == "Add")
+                //    {
+                //        addCommand.Add(milestone.getNumber());
+                //        milestoneCommandHandler(projList, oListItem, milestone);
+                //    }
+                //    else if (milestone.getCommand().Trim() == "Update")
+                //    {
+                //        updateCommand.Add(milestone.getNumber());
+                //    }
+                //    else if (milestone.getCommand().Trim() == "Remove")
+                //    {
+                //        removeCommand.Add(milestone.getNumber());
+                //    }
+                //}
+                //updateMilestones(projList, updateCommand, removeCommand, addCommand);    
+                //Console.WriteLine("the milestone number is: " + mProg.getMMilestoneNum(pair.Key));
+                //}
+                //}else if(milestone.getCommand().Trim() == "Update" || milestone.getCommand().Trim() == "Remove")
+                //{s
+                //    milestoneCommandHandler(projList, oListItem, milestone);
+                //}
+                //oListItem.Update();
+                //mClientContext.ExecuteQuery();
+
+
 
                 //oListItem.Update();
                 //SP.CamlQuery myQuery = new SP.CamlQuery();
                 //myQuery.ViewXml = " < Where > < Eq > < FieldRef Name = 'Milestone_x0020_Number' /> <Value Type = 'Text'> 2 </Value> </ Eq > </ Where ></ View >";
                 //SP.ListItemCollection collectItems = projList.GetItems(myQuery);
                 //mClientContext.Load(collectItems);
-                foreach (var pair in mProg.getMilestoneObjMap().OrderBy(i => i.Key))
-                {
-                    Milestone milestone = pair.Value;
-                    Console.WriteLine("the milestone command is: " + milestone.getCommand().Trim());
-                    //if (milestone.getCommand().Trim() == "Add")
-                    //{
-                        milestoneCommandHandler(projList, oListItem, milestone);
-                        Console.WriteLine("the milestone number is: " + mProg.getMMilestoneNum(pair.Key));
-                    //}
-                    //}else if(milestone.getCommand().Trim() == "Update" || milestone.getCommand().Trim() == "Remove")
-                    //{
-                    //    milestoneCommandHandler(projList, oListItem, milestone);
-                    //}
-                    //oListItem.Update();
-                    //mClientContext.ExecuteQuery();
-                }
+
                 Console.WriteLine("MUST UPDATE");
                 this.mInitialMilestoneRowCount = 0;
                 oListItem.Update();
@@ -460,10 +591,14 @@ namespace WindowsFormsApp1
             else
             {
                 this.mEmailError.setErrorCheck(true);
-                mEmailError.sendMilestoneTooLargeErrorEmail();
-                this.mEmailError.setErrorCode(3);
+                if (isOrdered == false)
+                {
+                    mEmailError.sendMilestoneTooLargeErrorEmail();
+                    this.mEmailError.setErrorCode(3);
+                }
             }
         }
+
 
         public string createProjectReport(string listTitle)
         {
