@@ -35,10 +35,10 @@ namespace WindowsFormsApp1
             mSubject = "";
         }
 
-        public void loadMail(FindItemsResults<Item> findResults, ExchangeService service, Program prog)
+        public void loadMail(FindItemsResults<Item> findResults, Item item, ExchangeService service, Program prog)
         {
-            foreach (Item item in findResults.Items)
-            {
+            //foreach (Item item in findResults.Items)
+            //{
                 EmailMessage message = EmailMessage.Bind(service, item.Id, PropertySet.FirstClassProperties);
                 message.Load();
                 this.mFrom = message.From.ToString();
@@ -46,7 +46,14 @@ namespace WindowsFormsApp1
                 this.mMailboxName = message.From.Name;
 
                 //if(mail.mMailboxAddress == "omar.hassan@t-mobile.com" || mail.mMailboxName == "Omar Hassan") { mail.mIsAuthority = true; }
-                if (this.mMailboxAddress == "ddaher@usc.edu") { this.mIsAuthority = true; }
+                if (this.mMailboxAddress == "ddaher@usc.edu")
+                {
+                    this.mIsAuthority = true;
+                }
+                else
+                {
+                    this.mIsAuthority = false;
+                }
                     //if (this.mMailboxAddress == "ddaher@usc.edu")
                     //{
                     //    EmailErrors ee = new EmailErrors(prog);
@@ -59,10 +66,6 @@ namespace WindowsFormsApp1
                 Console.WriteLine("the mailbox name is: " + message.From.Name);
                 this.mBody = message.Body.Text;
                 this.mSubject = message.Subject;
-
-
-                
-
                 string dateAndTimeSent = message.DateTimeSent.ToString();
                 this.mDateAndTimeSent = message.DateTimeSent.ToString();
                 prog.setMDateAndTimeSent(dateAndTimeSent);
@@ -70,11 +73,20 @@ namespace WindowsFormsApp1
                 Console.WriteLine("the date and time sent is: " + this.mDateAndTimeSent);
                 
                 Console.WriteLine("the email read is: " + this.mSubject);
-
+                message.IsRead = true;
+                message.Update(ConflictResolutionMode.AlwaysOverwrite);
+                //EmailMessage email = (EmailMessage)item;
                 //Do other stuff
-            }
+            //}
         }
-        
+        public void sendEmail(string body, string subject, ExchangeService service)
+        {
+            EmailMessage email = new EmailMessage(service);
+            email.ToRecipients.Add(this.mMailboxAddress);
+            email.Subject = (subject);
+            email.Body = new MessageBody(body);
+            email.Send();
+        }
     }
 
     public class Milestone
@@ -127,7 +139,7 @@ namespace WindowsFormsApp1
         private string mTimeSpent;
         private string mCurrentStatus;
         private string mStatusReason;
-
+        private MailItem mMailItem;
         Program()
         {
             Service service = new Service();
@@ -153,6 +165,17 @@ namespace WindowsFormsApp1
 
         public string getMBody() { return mBody; }
         public void setMBody(string value) { mBody = value; }
+
+        //get mail Item
+        public MailItem getMailItem()
+        {
+            return this.mMailItem;
+        }
+
+        public void setMailItem(MailItem value)
+        {
+            this.mMailItem = value;
+        }
 
         //metadata like date and time sent, received, etc.
         public string getMDateAndTimeSent() { return mDateAndTimeSent; }
@@ -482,54 +505,73 @@ namespace WindowsFormsApp1
                 SearchFilter finalSF = new SearchFilter.SearchFilterCollection(LogicalOperator.And, searchFinalFilter);
                 //new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender, "@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase)
                 //SearchFilter.ContainsSubstring subjectFilter = new SearchFilter.ContainsSubstring(EmailMessageSchema.Sender,"@denaliai.com", ContainmentMode.Substring, ComparisonMode.IgnoreCase);
-
+                
                 Console.WriteLine("AFTER");
 
-                ItemView view = new ItemView(1);
+                ItemView view = new ItemView(10);
                 // Fire the query for the unread items.
                 // This method call results in a FindItem call to EWS.
                 view.PropertySet = new PropertySet(BasePropertySet.IdOnly, EmailMessageSchema.Sender);
-                
-                //FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, sf, view);
+                view.OrderBy.Add(ItemSchema.DateTimeReceived, SortDirection.Descending);
+                //Queue<FindItemsResults<Item>> allEmails = new Queue<FindItemsResults<Item>>();
+                Queue<EmailMessage> allEmails = new Queue<EmailMessage>();
                 FindItemsResults<Item> findResults = service.FindItems(WellKnownFolderName.Inbox, finalSF, view);
-                //service.LoadPropertiesForItems(findResults, view.PropertySet);
-                //Program prog = new Program();
 
                 try
                 {
+                    //allEmails.Enqueue(message);
                     MailItem mail = new MailItem();
-                    mail.loadMail(findResults, service, prog);
-                    prog.setMProjectTitle(mail.mSubject);
-                    Console.WriteLine("&&&&&&&&&&&&&&&&&&&&&&&&the project title is: " + prog.getMProjectTitle());
-                    if (mail.mIsAuthority == true)
-                    { //idea is to send project report if authority is true
-                        //EmailErrors ee = new EmailErrors(prog);
-                        //ee.sendMilestoneErrorEmail();
-                        Sharepoint sp = new Sharepoint(prog);
-                        string fullReport = sp.createProjectReport(prog.getMProjectTitle());
-                    }
-                    else
+                    foreach(Item item in findResults.Items)
                     {
-                        HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                        //doc.LoadHtml(body);
-                        doc.LoadHtml(mail.mBody);
-                        String fullBodyText = "";
-                        foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//text()"))
-                        {
-                            if (node.InnerText != "")
+                        mail.loadMail(findResults, item, service, prog);
+                        prog.setMailItem(mail);
+                        prog.setMProjectTitle(mail.mSubject);
+                        Console.WriteLine("&&&&&&&&&&&&&&&&&&&&&&&&the project title is: " + prog.getMProjectTitle());
+                        if (mail.mIsAuthority == true)
+                        { //idea is to send project report if authority is true
+                          //EmailErrors ee = new EmailErrors(prog);
+                          //ee.sendMilestoneErrorEmail();
+                            try
                             {
-                                Console.WriteLine(node.InnerText);
-                                fullBodyText += "\n" + node.InnerText;
+                                Sharepoint sp = new Sharepoint(prog);
+                                string fullReport = sp.createProjectReport(prog.getMProjectTitle());
+                                //Create Response Email
+                                mail.sendEmail(fullReport, prog.getMProjectTitle(), service);
+
+                            }
+                            catch (ServerException se)
+                            {
+                                if (se.Message.Contains("does not exist at site with URL"))
+                                {
+                                    EmailErrors ee = new EmailErrors(prog);
+                                    ee.sendProjectDoesNotExistEmail(mail.mMailboxAddress);
+                                }
                             }
                         }
-                        //fullBodyText = adjustString(fullBodyText);
-                        prog.setMBody(fullBodyText);
-                        //prog.setMProjectTitle(subject);
-                        prog.setMProjectTitle(mail.mSubject);
-                        Console.WriteLine("body is: " + prog.getMBody());
-                        prog.parseEmail(prog, service);
-                    }
-                }catch(Exception e)
+                        else
+                        {
+                            HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                            //doc.LoadHtml(body);
+                            doc.LoadHtml(mail.mBody);
+                            String fullBodyText = "";
+                            foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//text()"))
+                            {
+                                if (node.InnerText != "")
+                                {
+                                    Console.WriteLine(node.InnerText);
+                                    fullBodyText += "\n" + node.InnerText;
+                                }
+                            }
+                            //fullBodyText = adjustString(fullBodyText);
+                            prog.setMBody(fullBodyText);
+                            //prog.setMProjectTitle(subject);
+                            prog.setMProjectTitle(mail.mSubject);
+                            Console.WriteLine("body is: " + prog.getMBody());
+                            prog.parseEmail(prog, service);
+                        }
+                    } 
+                }
+                catch(Exception e)
                 {
                     Console.WriteLine(e);
                 } 
